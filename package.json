@@ -16,7 +16,9 @@
     "bootstrap-select": "^1.13.18",
     "pinia": "^2.0.28",
     "roboto-fontface": "*",
+    "smartcube-web-bluetooth": "github:poliva/smartcube-web-bluetooth#2077416d6c828ec926dee424cf1bbfe4c0f25a47",
     "sr-puzzlegen": "^1.0.4",
+    "three": "^0.187.0",
     "vue": "^3.2.46",
     "vue-i18n": "^9.2.2",
     "vue-router": "^4.1.6"

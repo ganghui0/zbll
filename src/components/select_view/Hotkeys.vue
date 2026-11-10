@@ -31,6 +31,14 @@
       <kbd>←</kbd> / <kbd>→</kbd> / <kbd>Home</kbd> / <kbd>End</kbd>
       <span class="expl">{{ $t("hotkeys.navigate") }}</span>
     </li>
+    <li>
+      <kbd>Space</kbd>
+      <span class="expl">{{ $t("hotkeys.smart_cube_space") }}</span>
+    </li>
+    <li>
+      <kbd>Esc</kbd>
+      <span class="expl">{{ $t("hotkeys.smart_cube_escape") }}</span>
+    </li>
   </ul>
 </template>
 

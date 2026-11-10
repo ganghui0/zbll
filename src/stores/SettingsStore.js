@@ -4,7 +4,7 @@ import {defineStore} from 'pinia'
 export const fontsList = ["Roboto Mono", "Courier New", "Ubuntu Mono", "Arial", "Helvetica",
     "sans-serif", "Times", "serif",]
 
-const defaultSettings = {
+export const defaultSettings = {
     pictureView: "top",
     timerUpdate: "seconds",
     timerPrecision: 2,
@@ -14,13 +14,24 @@ const defaultSettings = {
     showHowTo: true,
     timerStartDelayMs: 100,
     scrambleAppendix: "None",
+    // smart cube: time from the moment the case appears instead of from the first turn
+    smartCubeTimeRecognition: false,
+    // smart cube: turning the top face and back (U U') starts the training like the space bar,
+    // turning the bottom face and back (D D') stops it like the escape key
+    smartCubeGestures: true,
+    // smart cube: the color of the face that is held at the bottom, see CROSS_COLORS
+    smartCubeCrossColor: "white",
+    // smart cube: the angle the virtual cube is looked at from, in degrees
+    smartCubeViewYaw: -25,
+    smartCubeViewPitch: 30,
 }
 
 const localStorageKey = "zbllTrainerSettings"
 
 export const useSettingsStore = defineStore('settings', () => {
+    // saved settings may predate newer options, which then take their defaults
     const store = reactive(
-        JSON.parse(localStorage.getItem(localStorageKey)) || defaultSettings
+        {...defaultSettings, ...JSON.parse(localStorage.getItem(localStorageKey))}
     )
 
     const resetDefaults = () => {

@@ -1,3 +1,7 @@
+// result - an entry of the session stats; a given-up smart cube attempt has no time
+export const resultToHumanReadable = (result, numDigitsMs = 2, displayMs = true) =>
+    result?.dnf ? "DNF" : msToHumanReadable(result?.ms, numDigitsMs, displayMs)
+
 // ms - total milliseconds
 export const msToHumanReadable = (ms, numDigitsMs = 2, displayMs = true) => {
   if (!Number.isFinite(ms) || ms < 0) {

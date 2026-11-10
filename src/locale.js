@@ -64,7 +64,8 @@ export const i18n = createI18n({
     legacy: false,
     locale: userLocale,
     fallbackLocale: defaultLocale,
-    messages: supportedLocales.find(o => o.code === userLocale).messages
+    // English too, for texts that are not translated yet
+    messages: {...en, ...supportedLocales.find(o => o.code === userLocale).messages}
 });
 
 // code: 2-letter locale code

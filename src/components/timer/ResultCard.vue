@@ -1,7 +1,7 @@
 <script setup>
 import {computed, ref, watch} from "vue";
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
-import {msToHumanReadable} from "@/helpers/time_formatter";
+import {resultToHumanReadable} from "@/helpers/time_formatter";
 import {useSelectedStore} from "@/stores/SelectedStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import {formatZbllKey} from "@/helpers/helpers";
@@ -58,7 +58,7 @@ const starClicked = () => {
         <div class="row align-items-center">
           <div class="col">
             <span class="d-sm-inline-block d-none">{{$t("result_card.result_no", result["i"] + 1)}} &nbsp;</span>
-            <span class="badge bg-primary">{{ msToHumanReadable(result["ms"], settings.store.timerPrecision) }}</span>
+            <span class="badge bg-primary">{{ resultToHumanReadable(result, settings.store.timerPrecision) }}</span>
           </div>
           <div class="col-auto">
             <button

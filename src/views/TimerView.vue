@@ -15,14 +15,21 @@ import {useSelectedStore} from "@/stores/SelectedStore";
 import {useSettingsStore} from "@/stores/SettingsStore"
 import {usePresetsStore, starredName} from "@/stores/PresetStore";
 import {useDisplayStore} from "@/stores/DisplayStore";
+import {useSmartCubeStore} from "@/stores/SmartCubeStore";
+import SmartCubeCase from "@/components/timer/SmartCubeCase.vue";
 
 const router = useRouter();
 const sessionStore = useSessionStore()
+const smartCube = useSmartCubeStore()
 const settings = useSettingsStore()
-const timerNotRunning = computed(() => sessionStore.timerState === TimerState.NOT_RUNNING)
+// With a smart cube the timer keeps the full width between the cases too,
+// so that every case appears in the same place. The cards are back when it is paused.
+const timerNotRunning = computed(() => sessionStore.timerState === TimerState.NOT_RUNNING && !smartCube.training)
 const timerWrapClass = computed(() => timerNotRunning.value
         ? ("col-lg-8 col-5 " + ((displayStore.showSettings || displayStore.showStatistics) ? "align-self-start" : "h-100"))
         : "col-12")
+// The virtual cube of a smart cube stays at the top, wherever the cards make the page end.
+const timerAreaClass = computed(() => smartCube.connected ? "justify-content-start pt-2" : "justify-content-center")
 const rightColumnClass = computed(() => timerNotRunning.value ? "col-lg-4 col-7 align-items-start" : "d-none")
 const selectStore = useSelectedStore()
 const presets = usePresetsStore()
@@ -39,6 +46,18 @@ const onGlobalKeyDown = event => {
     if (sessionStore.stats().length > sessionStore.observingResult
         && confirm(t("result_card.are_you_sure_to_delete"))) {
       sessionStore.deleteResult(sessionStore.observingResult)
+    }
+  }
+
+  if (smartCube.connected) {
+    // the cube runs the timer; a held key must not start, pause and give up in turns
+    const used = !event.repeat && smartCube.handleKey(event.key)
+    if (used || event.key === " ") {
+      event.preventDefault()
+      return
+    }
+    if (smartCube.caseActive) {
+      return // no other hotkeys in the middle of a case
     }
   }
 
@@ -86,6 +105,9 @@ const onGlobalKeyDown = event => {
   event.preventDefault()
 }
 const onGlobalKeyUp = (event) => {
+  if (smartCube.connected) {
+    return
+  }
   if (sessionStore.timerState === TimerState.STOPPING) {
     sessionStore.timerState = TimerState.NOT_RUNNING
   } else if (event.key === " ") {
@@ -103,18 +125,20 @@ const onGlobalKeyUp = (event) => {
 onMounted(() => {
   window.addEventListener('keydown', onGlobalKeyDown);
   window.addEventListener('keyup', onGlobalKeyUp);
-  sessionStore.timerState = TimerState.NOT_RUNNING
+  smartCube.pause() // also resets the timer state
   sessionStore.observingResult = Math.max(sessionStore.stats().length - 1, 0)
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onGlobalKeyDown);
   window.removeEventListener('keyup', onGlobalKeyUp);
-  sessionStore.timerState = TimerState.NOT_RUNNING
+  smartCube.pause() // a connected cube stays connected, but its turns only count on this view
 });
 
 const onTimerTouchStart = event => {
-  if (sessionStore.timerState === TimerState.RUNNING) {
+  if (smartCube.connected) {
+    smartCube.handleKey(" ")
+  } else if (sessionStore.timerState === TimerState.RUNNING) {
     sessionStore.stopTimer()
   } else if (sessionStore.timerState === TimerState.NOT_RUNNING && sessionStore.currentScramble) {
     sessionStore.getTimerReady(settings.store.timerStartDelayMs)
@@ -123,7 +147,9 @@ const onTimerTouchStart = event => {
 }
 
 const onTimerTouchEnd = event => {
-  if (sessionStore.timerState === TimerState.STOPPING) {
+  if (smartCube.connected) {
+    // nothing to do, the touch was handled when it started
+  } else if (sessionStore.timerState === TimerState.STOPPING) {
     sessionStore.timerState = TimerState.NOT_RUNNING
   } else if (sessionStore.timerState === TimerState.READY) {
     sessionStore.startTimer()
@@ -150,10 +176,12 @@ const onTimerTouchEnd = event => {
             class="d-flex flex-column p-0 timer_wrap"
             :class="timerWrapClass">
           <div
-              class="flex-grow-1 d-flex align-items-center justify-content-center"
+              class="flex-grow-1 d-flex flex-column align-items-center"
+              :class="timerAreaClass"
               @touchstart="onTimerTouchStart"
               @touchend="onTimerTouchEnd"
           >
+            <SmartCubeCase v-if="smartCube.connected"/>
             <Timer/>
           </div>
           <div v-if="displayStore.showSettings">

@@ -4,6 +4,7 @@ import ThemesSelect from "@/components/ThemesSelect.vue";
 import {defaultDarkName, defaultLightName, useThemeStore} from "@/stores/ThemeStore";
 import {useI18n} from 'vue-i18n'
 import {useDisplayStore} from "@/stores/DisplayStore";
+import {CROSS_COLORS} from "@/helpers/cube_orientation";
 
 const {t} = useI18n()
 const themes = useThemeStore();
@@ -125,6 +126,35 @@ const onResetBtnClicked = () => {
           <option value="L U L'">L U L'</option>
           <option value="L U' L'">L U' L'</option>
 <!--          TODO add "R' U R", "R' U' R'", "Random R" and "Random/ALL"-->
+        </select>
+      </div>
+
+      <div class="mb-2">
+        <label for="smartCubeCrossColor" class="form-label">{{ $t("settings.smart_cube_cross_color") }}</label>
+        <select
+            class="mx-2" tabindex="-1" @keydown.space.prevent=""
+            v-model="settings.store.smartCubeCrossColor" id="smartCubeCrossColor">
+          <option v-for="color in CROSS_COLORS" :value="color" :key="color">{{ $t("colors." + color) }}</option>
+        </select>
+      </div>
+
+      <div class="mb-2">
+        <label for="smartCubeTimeRecognition" class="form-label">{{ $t("settings.smart_cube_timing") }}</label>
+        <select
+            class="mx-2" tabindex="-1" @keydown.space.prevent=""
+            v-model="settings.store.smartCubeTimeRecognition" id="smartCubeTimeRecognition">
+          <option :value="false">{{ $t("settings.smart_cube_timing_first_turn") }}</option>
+          <option :value="true">{{ $t("settings.smart_cube_timing_case_shown") }}</option>
+        </select>
+      </div>
+
+      <div class="mb-2">
+        <label for="smartCubeGestures" class="form-label">{{ $t("settings.smart_cube_gestures") }}</label>
+        <select
+            class="mx-2" tabindex="-1" @keydown.space.prevent=""
+            v-model="settings.store.smartCubeGestures" id="smartCubeGestures">
+          <option :value="true">{{ $t("settings.timer_update_on") }}</option>
+          <option :value="false">{{ $t("settings.timer_update_off") }}</option>
         </select>
       </div>
 

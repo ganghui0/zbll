@@ -54,7 +54,7 @@ export const useSessionStore = defineStore('session', () => {
     const deleteResult = i => {
         // "undo" the result, recovering its recap in case of misscramble
         const key = store.stats[i].key
-        if (store.keysCount[key] > 0) {
+        if (!store.stats[i].dnf && store.keysCount[key] > 0) { // a DNF was never counted
             store.keysCount[key]--
         }
         store.stats.splice(i, 1)
@@ -132,22 +132,36 @@ export const useSessionStore = defineStore('session', () => {
         timerState.value = TimerState.RUNNING;
     }
 
-    const stopTimer = () => {
+    // adds a result for the current case and moves on to the next case
+    const recordResult = (ms, dnf = false) => {
         const index = store.stats.length
         if (store.currentKey !== null) {
             const key = store.currentKey
-            store.stats.push({
+            const result = {
                 "i": index,
                 "key": key,
                 "scramble": currentScramble.value,
-                "ms": Date.now() - timerStarted.value
-            })
-            store.keysCount[key]++;
+                "ms": ms
+            }
+            if (dnf) {
+                result.dnf = true // not counted, so that a recap brings the case back
+            } else {
+                store.keysCount[key]++;
+            }
+            store.stats.push(result)
         }
         setRandomCase()
-        timerState.value = TimerState.STOPPING;
         observingResult.value = index
     }
+
+    const stopTimer = () => {
+        recordResult(Date.now() - timerStarted.value)
+        timerState.value = TimerState.STOPPING;
+    }
+
+    // Time to show while the timer is in the RUNNING state but no longer counting, or null.
+    // Smart cube: the case is solved and counts unless the cube is turned again right away.
+    const frozenMs = ref(null)
 
     watch(store, () => { localStorage.setItem(storeKey, JSON.stringify(store)) })
 
@@ -162,6 +176,7 @@ export const useSessionStore = defineStore('session', () => {
 
     return { store, clearSession, setSelectedKeys, stats, deleteResult,
         observingResult, timerStarted, timerState, getTimerReady, startTimer, stopTimer,
-        startRecap, currentScramble, casesWithZeroCount
+        startRecap, currentScramble, casesWithZeroCount,
+        recordResult, frozenMs, skipCase: setRandomCase
     }
 });

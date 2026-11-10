@@ -1,7 +1,7 @@
 <script setup>
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {computed, ref, watchEffect} from "vue";
-import {msToHumanReadable} from "@/helpers/time_formatter";
+import {msToHumanReadable, resultToHumanReadable} from "@/helpers/time_formatter";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
@@ -29,10 +29,14 @@ const timerLabel = computed(() => {
   }
   if (sessionStore.timerState === TimerState.NOT_RUNNING || sessionStore.timerState === TimerState.STOPPING) {
     const n = sessionStore.stats().length
-    const ms = n === 0 ? 0 : sessionStore.stats()[n-1]["ms"]
-    return msToHumanReadable(ms, settings.store.timerPrecision, true)
+    return n === 0
+        ? msToHumanReadable(0, settings.store.timerPrecision, true)
+        : resultToHumanReadable(sessionStore.stats()[n-1], settings.store.timerPrecision, true)
   }
   // running
+  if (sessionStore.frozenMs !== null) {
+    return msToHumanReadable(sessionStore.frozenMs, settings.store.timerPrecision, true)
+  }
   if (settings.store.timerUpdate === "off") {
     return "⏱️"
   }

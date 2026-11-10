@@ -1,7 +1,7 @@
 <script setup>
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {computed, onMounted, ref, watch} from "vue";
-import {msToHumanReadable} from "@/helpers/time_formatter";
+import {resultToHumanReadable} from "@/helpers/time_formatter";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import {useSelectedStore} from "@/stores/SelectedStore";
 import {useI18n} from 'vue-i18n'
@@ -54,7 +54,7 @@ const statClicked = i => sessionStore.observingResult = i
           <span
               @click="statClicked(stat['i'])" class="clickable stat"
               :class="sessionStore.observingResult === stat['i'] ? 'text-info' : ''">
-            {{ msToHumanReadable(stat["ms"], settings.store.timerPrecision) }}
+            {{ resultToHumanReadable(stat, settings.store.timerPrecision) }}
           </span>{{ stat["i"] === sessionStore.stats().length - 1 ? "" : ", " }}
         </span>
         <div v-if="sessionStore.stats().length === 0 && sessionStore.timerState !== TimerState.RUNNING">

@@ -6,9 +6,13 @@ import {useDisplayStore} from "@/stores/DisplayStore";
 import {useRouter, useRoute} from "vue-router";
 import {computed} from "vue";
 import {useSessionStore} from "@/stores/SessionStore";
+import {ConnectionStatus, useSmartCubeStore} from "@/stores/SmartCubeStore";
+import {useI18n} from 'vue-i18n'
 
+const {t} = useI18n()
 const selected = useSelectedStore();
 const session = useSessionStore()
+const smartCube = useSmartCubeStore()
 const router = useRouter();
 const route = useRoute()
 const displayStore = useDisplayStore()
@@ -20,6 +24,28 @@ const tinySelectBtnText = computed(() => {
       ? (session.casesWithZeroCount.length + '/' + selected.totalZbllsSelected())
       : selected.totalZbllsSelected()
 })
+
+const smartCubeBtnClass = computed(() => smartCube.connected ? 'bg-success text-white' : 'text-info')
+// No title: the browser kept showing its tooltip after its device chooser had closed.
+const smartCubeBtnLabel = computed(() => t(smartCube.connected ? "smart_cube.disconnect" : "smart_cube.connect"))
+const onSmartCubeBtnClicked = async () => {
+  if (!smartCube.supported) {
+    alert(t("smart_cube.not_supported"))
+    return
+  }
+  if (smartCube.connected) {
+    smartCube.disconnect()
+    return
+  }
+  try {
+    await smartCube.connect(deviceName => prompt(t("smart_cube.mac_prompt", {name: deviceName})))
+  } catch (e) {
+    if (e?.name !== "NotFoundError") { // NotFoundError: the device chooser was closed without choosing
+      console.error(e)
+      alert(t("smart_cube.connect_failed") + "\n" + (e?.message ?? e))
+    }
+  }
+}
 </script>
 
 <template>
@@ -56,6 +82,16 @@ const tinySelectBtnText = computed(() => {
       </div>
       <div class="col d-flex justify-content-end p-0">
         <LangDropdown/>
+        <button
+            v-if="isTimerView"
+            class="btn btn-link px-1 px-md-3"
+            tabindex="-1" @keydown.space.prevent=""
+            :class="smartCubeBtnClass"
+            :disabled="smartCube.status === ConnectionStatus.CONNECTING"
+            @click="onSmartCubeBtnClicked"
+            :aria-label="smartCubeBtnLabel">
+          <i class="bi-bluetooth font_bigger"/>
+        </button>
         <button
             class="btn btn-link px-1 px-md-3"
             tabindex="-1" @keydown.space.prevent=""
