@@ -61,7 +61,7 @@
       "scramble_appendix": "Scramble appendix",
       "timer_start_delay_ms": "Timer start delay (ms)",
       "smart_cube_cross_color": "Smart cube: cross color",
-      "smart_cube_gestures": "Smart cube: U U' starts, D D' stops",
+      "smart_cube_gestures": "Smart cube: U ×4 starts, D' ×4 stops",
       "smart_cube_timing": "Smart cube: start timing",
       "smart_cube_timing_first_turn": "At the first turn",
       "smart_cube_timing_case_shown": "When the case appears"
@@ -81,7 +81,7 @@
       "connect_failed": "Could not connect to the cube:",
       "mac_prompt": "Could not find the Bluetooth address (MAC) of {name}. Enter it like AB:12:34:56:78:9A",
       "press_to_start": "Press space or tap to start",
-      "press_or_turn_to_start": "Press space, tap or turn U U' to start",
+      "press_or_turn_to_start": "Press space, tap or turn U ×4 to start",
       "next_case": "Next case…"
     },
     "timer": {
@@ -123,8 +123,8 @@
       "recap": "Start recap all selected cases",
       "add_to_starred": "Add selected case to starred preset",
       "navigate": "Navigate to prev/next/first/last result in stats",
-      "smart_cube_space": "Smart cube: start (also U U' on the cube) or pause; during a case: give up and see the algs",
-      "smart_cube_escape": "Smart cube: drop the current attempt and pause (also D D' on the cube)"
+      "smart_cube_space": "Smart cube: start (also U ×4 on the cube) or pause; during a case: give up and see the algs",
+      "smart_cube_escape": "Smart cube: drop the current attempt and pause (also D' ×4 on the cube)"
     },
     "contact": {
       "contact": "Contact",

@@ -3,7 +3,7 @@ import {computed, ref, shallowRef, watch} from "vue";
 import {connectSmartCube, cubeTimestampLinearFit, now} from "smartcube-web-bluetooth";
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
-import {applyAlg, applyMove, isSolved, mapAlg, solvedState} from "@/helpers/cube_state";
+import {applyAlg, applyMove, isSolved, mapAlg, parseMove, solvedState} from "@/helpers/cube_state";
 import {
     createGyroView, GyroMode, gyroQuaternion, homeOrientations, nearestOrientation, qConj, qMul,
 } from "@/helpers/cube_orientation";
@@ -14,8 +14,10 @@ const NEXT_CASE_DELAY_MS = 500
 // A solve only counts when the solved cube is not turned again within this time (most turns within an alg
 // follow each other faster). Solving the case and then doing a wrong AUF does not count: the AUF has to be fixed.
 const SOLVE_CONFIRM_MS = 400
-// The two turns of a gesture (see turnedAndBack) follow each other within this time.
+// The turns of a gesture (see countTurn) follow each other within this time.
 const GESTURE_MS = 1500
+// A gesture is a face turned all the way around.
+const GESTURE_QUARTER_TURNS = 4
 // The cube's clock is fitted to ours to time a solve. A fit that disagrees with the cube's clock by more
 // than this is a bad fit (too few turns), not a clock that is this far off.
 const MAX_CLOCK_SKEW = 0.05
@@ -25,6 +27,8 @@ export const ConnectionStatus = Object.freeze({
     CONNECTING: "connecting",
     CONNECTED: "connected",
 });
+
+const Gesture = Object.freeze({START: "start", STOP: "stop"})
 
 export const Phase = Object.freeze({
     PAUSED: "paused", // turns are not timed
@@ -102,20 +106,41 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
     let nextCaseTimer = 0
     let confirmTimer = 0
 
-    // Gestures, for hands that stay on the cube: a face turned and turned straight back, which leaves the
-    // cube as it was and is in no alg. The top face (U U' or U' U) starts the training like the space bar,
-    // the bottom face (D D' or D' D) stops it like the escape key.
-    let lastTurn = null // {move, at}
-    // face: a position, U for the face held on top; previous: the turn before this one, or null
-    const turnedAndBack = (face, previous, move, at) => {
-        const cubeFace = home().toCube[face]
-        return settings.store.smartCubeGestures && previous !== null
-            && at - previous.at <= GESTURE_MS
-            && [previous.move, move].sort().join() === [cubeFace, cubeFace + "'"].join()
+    // Gestures, for hands that stay on the cube: a face turned all the way around in one direction, which
+    // leaves the cube as it was and is in no alg. The top face clockwise (U U U U) starts the training like
+    // the space bar, the bottom face counterclockwise (D' D' D' D') stops it like the escape key.
+    // The latest turns, as long as they turn one face one way: {face, direction: 1 clockwise, -1
+    // counterclockwise, 0 not known (half turns only), quarterTurns, at: when the last one arrived}
+    let sameTurns = null
+    // Counts a turn, returns the gesture that it completes or null.
+    const countTurn = (move, at) => {
+        const {face, quarterTurns} = parseMove(move)
+        const direction = [0, 1, 0, -1][quarterTurns] // some cubes report a fast U U as U2
+        const follows = sameTurns !== null && sameTurns.face === face && at - sameTurns.at <= GESTURE_MS
+            && sameTurns.direction * direction >= 0
+        sameTurns = {
+            face,
+            direction: (follows && sameTurns.direction) || direction,
+            quarterTurns: (follows ? sameTurns.quarterTurns : 0) + (direction === 0 ? 2 : 1),
+            at,
+        }
+        if (sameTurns.quarterTurns < GESTURE_QUARTER_TURNS) {
+            return null
+        }
+        const turned = sameTurns.direction
+        sameTurns = null
+        if (!settings.store.smartCubeGestures) {
+            return null
+        }
+        const {toCube} = home() // the faces by position, U for the one held on top
+        if (face === toCube.U && turned >= 0) {
+            return Gesture.START
+        }
+        return face === toCube.D && turned <= 0 ? Gesture.STOP : null
     }
-    // A solve that was waiting to be confirmed when the cube was turned again: {ms, turns: how many turns
-    // the case had by then}. If that turn opens the stop gesture, the solve counts after all.
-    let interruptedSolve = null
+    // The time of a solve that was waiting to be confirmed when the cube was turned again, or null. If that
+    // turn opens the stop gesture, the solve counts after all.
+    let interruptedSolveMs = null
 
     const clearTimers = () => {
         clearTimeout(nextCaseTimer)
@@ -125,7 +150,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
 
     const pause = () => {
         clearTimers()
-        lastTurn = null
+        sameTurns = null
         phase.value = Phase.PAUSED
         session.frozenMs = null
         session.timerState = TimerState.NOT_RUNNING
@@ -146,7 +171,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         setCubeState(caseStart)
         showUpright(GyroMode.HOLD)
         turnLog = []
-        interruptedSolve = null
+        interruptedSolveMs = null
         shownAt = now()
         phase.value = Phase.SHOWN
         session.frozenMs = null
@@ -217,15 +242,14 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         cubeDrawing.value = {state: turned, move}
         gyroView.faceTurned()
 
-        const previous = lastTurn
-        lastTurn = {move, at: event.timestamp}
+        const gesture = countTurn(move, event.timestamp)
         if (phase.value === Phase.PAUSED) {
-            if (turnedAndBack("U", previous, move, event.timestamp)) {
+            if (gesture === Gesture.START) {
                 start()
             }
             return
         }
-        const stop = turnedAndBack("D", previous, move, event.timestamp)
+        const stop = gesture === Gesture.STOP
         if (phase.value === Phase.PENDING) {
             if (stop) {
                 pause()
@@ -238,7 +262,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             session.startTimer()
         }
         if (phase.value === Phase.CONFIRMING) { // turned again right after the solved state: go on solving
-            interruptedSolve = {ms: session.frozenMs, turns: turnLog.length}
+            interruptedSolveMs = session.frozenMs
             clearTimers()
             session.frozenMs = null
         }
@@ -251,10 +275,10 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             arrivedAt: event.timestamp,
         })
         if (stop) {
-            if (interruptedSolve !== null && turnLog.length === interruptedSolve.turns + 2) {
-                // the case was solved just before the gesture: it counts, with the time it had then
+            if (interruptedSolveMs !== null && isSolved(candidates[solvedFront])) {
+                // the gesture left the cube as it was, solved: the case counts, with the time it had then
                 phase.value = Phase.CONFIRMING
-                session.frozenMs = interruptedSolve.ms
+                session.frozenMs = interruptedSolveMs
             }
             endAttempt(false)
             return
@@ -264,6 +288,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             // a case that looks the same from several sides is solved for several of them
             solvedFront = solved.includes(front) ? front : solved[0]
             phase.value = Phase.CONFIRMING
+            sameTurns = null // the turn that solved the case is not part of a gesture
             session.frozenMs = solveMs() // shown already, but only counts once confirmed
             confirmTimer = setTimeout(confirmSolve, SOLVE_CONFIRM_MS)
         }
@@ -366,7 +391,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         // we do not know the state of the real cube, and do not need to
         setCubeState(solvedState())
         gyroSeen = false
-        lastTurn = null
+        sameTurns = null
         front = 0
         gyroView.setHome(home().quat)
         gyroView.reset()

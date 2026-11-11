@@ -16,8 +16,8 @@ export const defaultSettings = {
     scrambleAppendix: "None",
     // smart cube: time from the moment the case appears instead of from the first turn
     smartCubeTimeRecognition: false,
-    // smart cube: turning the top face and back (U U') starts the training like the space bar,
-    // turning the bottom face and back (D D') stops it like the escape key
+    // smart cube: turning the top face all the way around (U four times) starts the training like the
+    // space bar, turning the bottom face all the way around (D' four times) stops it like the escape key
     smartCubeGestures: true,
     // smart cube: the color of the face that is held at the bottom, see CROSS_COLORS
     smartCubeCrossColor: "white",
