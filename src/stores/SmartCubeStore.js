@@ -30,7 +30,7 @@ export const ConnectionStatus = Object.freeze({
     CONNECTED: "connected",
 });
 
-const Gesture = Object.freeze({START: "start", STOP: "stop"})
+const Gesture = Object.freeze({START: "start", GIVE_UP: "give up", STOP: "stop"})
 
 export const Phase = Object.freeze({
     PAUSED: "paused", // turns are not timed
@@ -98,10 +98,10 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
 
     let connection = null
     let subscription = null
-    let caseStart = cubeState
     // The case for each way the cube can be held. The turns go to all of them, and the case is solved
     // when one of them is: the one of the side that really was in front.
     let candidates = []
+    let caseStarts = [] // the candidates before the first turn
     let solvedFront = 0
     let turnLog = [] // {move, cubeTimestamp, localTimestamp, arrivedAt} of the current case
     let shownAt = 0
@@ -110,14 +110,15 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
     let nextCaseTimer = 0
     let confirmTimer = 0
 
-    // details: of a solve, see solve_stats.js
+    // details: of a solve, see solve_stats.js. Returns the result.
     const recordResult = (ms, dnf, details) => session.recordResult(ms, {
         dnf, input: SolveInput.SMART_CUBE, crossColor: settings.store.smartCubeCrossColor, details,
     })
 
     // Gestures, for hands that stay on the cube: a face turned all the way around in one direction, which
     // leaves the cube as it was and is in no alg. The top face clockwise (U U U U) starts the training like
-    // the space bar, the bottom face counterclockwise (D' D' D' D') stops it like the escape key.
+    // the space bar. The bottom face clockwise (D D D D) gives up the case like the space bar,
+    // counterclockwise (D' D' D' D') stops the training like the escape key.
     // The latest turns, as long as they turn one face one way: {face, direction: 1 clockwise, -1
     // counterclockwise, 0 not known (half turns only), quarterTurns, at: when the last one arrived}
     let sameTurns = null
@@ -145,13 +146,19 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         if (face === toCube.U && turned >= 0) {
             return Gesture.START
         }
-        return face === toCube.D && turned <= 0 ? Gesture.STOP : null
+        if (face !== toCube.D) {
+            return null
+        }
+        return turned > 0 ? Gesture.GIVE_UP : Gesture.STOP // half turns only: stop, which loses less
     }
     // The solve that waits to be confirmed, see solveResult.
     let solve = null
     // The solve that was waiting to be confirmed when the cube was turned again, or null. If that turn opens
     // the stop gesture, the solve counts after all.
     let interruptedSolve = null
+    // The id of the result of the solve that just counted, until the next case is shown or null. Until
+    // then the give up gesture still makes it a DNF: nobody can tell whether the solve was confirmed yet.
+    let countedSolveId = null
 
     const clearTimers = () => {
         clearTimeout(nextCaseTimer)
@@ -162,6 +169,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
     const pause = () => {
         clearTimers()
         sameTurns = null
+        countedSolveId = null
         phase.value = Phase.PAUSED
         session.frozenMs = null
         session.timerState = TimerState.NOT_RUNNING
@@ -178,11 +186,12 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         gyroView.setHome(home().quat)
         // the scramble is written for a cube with the last layer on top
         candidates = homes.value.map(({toCube}) => applyAlg(solvedState(), mapAlg(session.currentScramble, toCube)))
-        caseStart = candidates[front]
-        setCubeState(caseStart)
+        caseStarts = candidates
+        setCubeState(caseStarts[front])
         showUpright(GyroMode.HOLD)
         turnLog = []
         solve = interruptedSolve = null
+        countedSolveId = null
         timedFrom = 0
         shownAt = now()
         phase.value = Phase.SHOWN
@@ -249,9 +258,15 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             setFront(solvedFront)
             setCubeState(candidates[front])
         }
-        recordResult(solve.ms, false, solve.details)
+        countedSolveId = recordResult(solve.ms, false, solve.details)?.id ?? null
         session.timerState = TimerState.NOT_RUNNING
         scheduleNextCase()
+    }
+
+    // The trainer pauses with the case back on the virtual cube, so that its algs can be tried on it.
+    const pauseOnCase = () => {
+        setCubeState(caseStarts[front])
+        pause()
     }
 
     const onTurn = event => {
@@ -276,9 +291,13 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             return
         }
         const stop = gesture === Gesture.STOP
+        const giveUp = gesture === Gesture.GIVE_UP
         if (phase.value === Phase.PENDING) {
             if (stop) {
                 pause()
+            } else if (giveUp && countedSolveId !== null) {
+                session.replaceWithDnf(countedSolveId) // given up right after it was solved
+                pauseOnCase()
             } else {
                 scheduleNextCase() // not left alone yet
             }
@@ -309,14 +328,14 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
                 session.startTimer()
             }
         }
-        if (stop) {
-            if (interruptedSolve !== null && isSolved(candidates[solvedFront])) {
+        if (stop || giveUp) {
+            if (stop && interruptedSolve !== null && isSolved(candidates[solvedFront])) {
                 // the gesture left the cube as it was, solved: the case counts, as it was solved then
                 phase.value = Phase.CONFIRMING
                 solve = interruptedSolve
                 session.frozenMs = solve.ms
             }
-            endAttempt(false)
+            endAttempt(giveUp) // given up: a DNF, also when the case had just been solved
             return
         }
         const solved = candidates.flatMap((state, i) => isSolved(state) ? [i] : [])
@@ -350,7 +369,8 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             confirmSolve()
         } else if (record) {
             recordResult(turnLog.length > 0 ? now() - turnLog[0].arrivedAt : 0, true)
-            setCubeState(caseStart)
+            pauseOnCase()
+            return
         } else {
             session.skipCase() // the case has been seen
             setCubeState(solvedState())

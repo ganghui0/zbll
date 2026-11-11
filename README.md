@@ -18,9 +18,13 @@ the settings) and stops when the case is solved, then the next case comes up.
 - During a case, space or a tap gives up: the case is kept as a DNF with its algs on screen and put back on the
   virtual cube, and the trainer pauses so that you can try them.
 - <kbd>Esc</kbd> drops the current attempt and pauses.
-- Your hands can stay on the cube: turning the top face all the way around (U four times) starts like space,
-  turning the bottom face all the way around the other way (D' four times) stops like Esc. A case you had just
-  solved still counts. This can be switched off in the settings.
+- Your hands can stay on the cube: a face turned all the way around is a gesture. They can be switched off in the
+  settings.
+  - U four times (the top face) starts like space.
+  - D four times (the bottom face) gives up like space: the case is a DNF. Use it when an alg went wrong, instead
+    of solving the cube back for a time that means nothing. It also works right after a solve, until the next case
+    appears: that solve becomes a DNF.
+  - D' four times (the bottom face, the other way) stops like Esc. A case you had just solved still counts.
 - Drag the virtual cube with the mouse to look at it from another side. Double click to undo that, and to tell the
   trainer that you hold the cube upright right now.
 

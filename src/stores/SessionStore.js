@@ -145,11 +145,13 @@ export const useSessionStore = defineStore('session', () => {
     // adds a result for the current case and moves on to the next case
     // input: a SolveInput, how the solve was timed. crossColor: of a smart cube solve.
     // details: what a smart cube tells about the solve, see solve_stats.js
+    // Returns the result, or null when there is no case.
     const recordResult = (ms, {dnf = false, input = SolveInput.KEYBOARD, crossColor, details} = {}) => {
         const index = store.stats.length
+        let result = null
         if (store.currentKey !== null) {
             const key = store.currentKey
-            const result = {
+            result = {
                 "i": index,
                 "key": key,
                 "scramble": currentScramble.value,
@@ -172,6 +174,36 @@ export const useSessionStore = defineStore('session', () => {
         }
         setRandomCase()
         observingResult.value = index
+        return result
+    }
+
+    // The result with this id does not count after all: a DNF takes its place. A result does not change once
+    // it is recorded (see stats_file.js), so it is deleted and the DNF is a new one, with a new id.
+    const replaceWithDnf = id => {
+        const i = store.stats.findIndex(result => result.id === id)
+        if (i < 0 || store.stats[i].dnf) {
+            return
+        }
+        const solved = store.stats[i]
+        const dnf = {
+            "i": i,
+            "key": solved.key,
+            "scramble": solved.scramble,
+            "ms": solved.ms,
+            "id": newSolveId(),
+            "timestamp": solved.timestamp,
+            "input": solved.input,
+            "dnf": true,
+        }
+        if (solved.crossColor) {
+            dnf.crossColor = solved.crossColor
+        }
+        if (store.keysCount[solved.key] > 0) {
+            store.keysCount[solved.key]-- // a DNF is not counted
+        }
+        store.stats[i] = dnf
+        driveSync.queueDeletion(solved)
+        driveSync.queueSolves([dnf])
     }
 
     const stopTimer = (input = SolveInput.KEYBOARD) => {
@@ -200,6 +232,6 @@ export const useSessionStore = defineStore('session', () => {
     return { store, clearSession, setSelectedKeys, stats, deleteResult,
         observingResult, timerStarted, timerState, getTimerReady, startTimer, stopTimer,
         startRecap, currentScramble, casesWithZeroCount,
-        recordResult, frozenMs, skipCase: setRandomCase
+        recordResult, replaceWithDnf, frozenMs, skipCase: setRandomCase
     }
 });

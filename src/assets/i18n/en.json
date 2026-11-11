@@ -61,7 +61,7 @@
       "scramble_appendix": "Scramble appendix",
       "timer_start_delay_ms": "Timer start delay (ms)",
       "smart_cube_cross_color": "Smart cube: cross color",
-      "smart_cube_gestures": "Smart cube: U ×4 starts, D' ×4 stops",
+      "smart_cube_gestures": "Smart cube: U ×4 starts, D ×4 gives up (DNF), D' ×4 stops",
       "smart_cube_timing": "Smart cube: start timing",
       "smart_cube_timing_first_turn": "At the first turn",
       "smart_cube_timing_case_shown": "When the case appears"
