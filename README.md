@@ -1,6 +1,25 @@
 # zbll trainer
 ## [bestsiteever.net/zbll](https://www.bestsiteever.net/zbll) - web application for speedcubers for practicing ZBLL recognition and execution.
 
+## Weak cases
+
+The cases you solve slowly or not at all come up more often than the others. The setting "Weak cases come up" says
+how much: more often (the default), much more often, or like the others.
+
+- The trainer keeps the last 5 results of every case. They stay when the session is cleared; a result you delete
+  is forgotten.
+- A result is compared to your typical time: the median, over the cases you selected, of their mean time. A DNF
+  counts as twice the typical time, and so does a solve that took even longer.
+- The score of a case is the mean of its results, in typical times, together with one made-up result of 1.5: a
+  case you have not had yet is taken for a rather weak one, and one lucky solve does not make a case a strong one.
+- A case comes up in proportion to its score squared ("more often") or to the power of four ("much more often"),
+  but never twice in a row. A case that takes half as long again as the typical one comes up about twice as often
+  as it, or four times as often with "much more often"; one you always DNF three times as often, or ten times.
+- The result card shows the latest results of its case and how often it comes up compared to the average of the
+  selected cases (×2 is twice as often). The stats card lists the weakest cases.
+- With "like the others" every case has the same chance, except that one pick in five goes to the cases that
+  came up least. Going through each case once ("recap") does not use the weights.
+
 ## Smart cube
 
 The Bluetooth button on the timer page connects a smart cube (GAN, MoYu, QiYi, Giiker, GoCube), using

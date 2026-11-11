@@ -60,6 +60,10 @@
       "are_you_sure_to_reset": "Are you sure?",
       "scramble_appendix": "Scramble appendix",
       "timer_start_delay_ms": "Timer start delay (ms)",
+      "weak_cases": "Weak cases come up",
+      "weak_cases_off": "Like the others",
+      "weak_cases_more": "More often",
+      "weak_cases_most": "Much more often",
       "smart_cube_cross_color": "Smart cube: cross color",
       "smart_cube_gestures": "Smart cube: U ×4 starts, D ×4 gives up (DNF), D' ×4 stops",
       "smart_cube_timing": "Smart cube: start timing",
@@ -138,7 +142,9 @@
       "clear_btn": "clear",
       "clear_btn_hint": "Clear session",
       "hold_spacebar_hint": "Hold spacebar to start the timer",
-      "are_you_sure_to_clean": "Clear session?"
+      "are_you_sure_to_clean": "Clear session?",
+      "weakest_cases": "Weakest cases:",
+      "weakest_cases_hint": "The cases you train that come up most often, and how often compared to the average one. See the settings."
     },
     "result_card": {
       "result_no": "Result #{count}",
@@ -153,6 +159,9 @@
       "add_your_note": "Add your note",
       "edit_note": "Edit note",
       "setup_moves": "Setup",
+      "recent_results": "Recent:",
+      "comes_up": "comes up ×{times}",
+      "recent_results_hint": "The latest results of this case, which tell how weak it is. ×2 means that it comes up twice as often as the average case you train.",
       "algorithms_collection": "Algs"
     },
     "hotkeys": {

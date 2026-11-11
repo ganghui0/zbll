@@ -6,6 +6,8 @@ import {formatTps, summarizeSolves} from "@/helpers/solve_stats";
 import SolveStatsTable from "@/components/timer/SolveStatsTable.vue";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import {useSelectedStore} from "@/stores/SelectedStore";
+import {useCaseHistoryStore} from "@/stores/CaseHistoryStore";
+import {formatZbllKey} from "@/helpers/helpers";
 import {useI18n} from 'vue-i18n'
 const {t} = useI18n()
 
@@ -27,6 +29,16 @@ onMounted(() => {
 })
 
 const statClicked = i => sessionStore.observingResult = i
+
+// The cases that come up most often because of their results, see case_weights.js. A case that has not
+// come up yet is not known to be weak.
+const WEAKEST_SHOWN = 5
+const caseHistory = useCaseHistoryStore()
+const weakestCases = computed(() => [...(sessionStore.comesUp ?? [])]
+    .filter(([key, times]) => times > 1 && caseHistory.resultsOf(key).length > 0)
+    .sort(([, times], [, otherTimes]) => otherTimes - times)
+    .slice(0, WEAKEST_SHOWN)
+    .map(([key, times]) => ({name: formatZbllKey(key), times: times.toFixed(1)})))
 
 // of the solves that a smart cube told more about than their time
 const smartCubeSolves = computed(() => summarizeSolves(sessionStore.stats()))
@@ -80,6 +92,15 @@ const smartCubeRows = computed(() => {
           {{t("stats_card.hold_spacebar_hint")}}
         </div>
       </div>
+      <template v-if="weakestCases.length > 0">
+        <hr>
+        <div class="small" :title="t('stats_card.weakest_cases_hint')">
+          <span class="opacity-75">{{ t("stats_card.weakest_cases") }}</span>
+          <span v-for="(weak, index) in weakestCases" :key="weak.name">
+            {{ weak.name }} <span class="opacity-75">×{{ weak.times }}</span>{{ index < weakestCases.length - 1 ? "," : "" }}
+          </span>
+        </div>
+      </template>
       <template v-if="smartCubeSolves.count > 0">
         <hr>
         <div class="mb-1">{{ t("solve_stats.smart_cube_solves", smartCubeSolves.count) }}</div>

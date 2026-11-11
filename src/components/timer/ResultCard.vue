@@ -7,6 +7,8 @@ import {
 } from "@/helpers/solve_stats";
 import {useSelectedStore} from "@/stores/SelectedStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
+import {useCaseHistoryStore} from "@/stores/CaseHistoryStore";
+import {WeakCases} from "@/helpers/case_weights";
 import {formatZbllKey} from "@/helpers/helpers";
 import {usePresetsStore, starredName} from "@/stores/PresetStore";
 import { useI18n } from 'vue-i18n'
@@ -20,6 +22,7 @@ const sessionStore = useSessionStore()
 const selectedStore = useSelectedStore()
 const settings = useSettingsStore()
 const presets = usePresetsStore()
+const caseHistory = useCaseHistoryStore()
 const isValid = computed(() => sessionStore.stats().length > sessionStore.observingResult)
 const result = computed(() => {
       return isValid.value
@@ -59,6 +62,12 @@ const turns = computed(() => {
     execution: toMoves(all.slice(before)).join(" "),
   }
 })
+
+// What makes the case come up more or less often than the others, see case_weights.js: its latest results,
+// and how often that is if it is among the cases that are trained.
+const recentResults = computed(() => settings.store.weakCases === WeakCases.OFF ? []
+    : caseHistory.resultsOf(result.value.key).map(recent => resultToHumanReadable(recent, settings.store.timerPrecision)))
+const comesUp = computed(() => sessionStore.comesUp?.get(result.value.key)?.toFixed(1) ?? null)
 
 const onDeleteBtnClicked = () => {
   if (isValid.value && confirm(t("result_card.are_you_sure_to_delete"))) {
@@ -126,6 +135,11 @@ const starClicked = () => {
             :title="$t('result_card.add_to_starred') + ' (Alt+A)'"
             :class="bookmarkIconClass"
             @click="starClicked"/>
+      </p>
+      <p v-if="recentResults.length > 0" class="card-text small my-0 my-sm-1" :title="$t('result_card.recent_results_hint')">
+        <span class="opacity-75">{{ $t("result_card.recent_results") }}</span>
+        {{ recentResults.join(", ") }}
+        <span v-if="comesUp !== null" class="opacity-75">· {{ $t("result_card.comes_up", {times: comesUp}) }}</span>
       </p>
       <ZbllNote :zbllKey="result['key']"/>
       <div class="form-check mt-1">

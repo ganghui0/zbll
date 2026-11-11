@@ -3,6 +3,9 @@ import {computed, reactive, ref, watch} from "vue";
 import {random_element} from "@/helpers/helpers";
 import {makeScramble} from "@/helpers/scramble_utils"
 import {useDriveSyncStore} from "@/stores/DriveSyncStore";
+import {useCaseHistoryStore} from "@/stores/CaseHistoryStore";
+import {useSettingsStore} from "@/stores/SettingsStore";
+import {caseFrequencies, pickWeighted, WeakCases} from "@/helpers/case_weights";
 import {legacySolveId, newSolveId, SolveInput} from "@/sync/solve_record";
 
 const statsKey = 'zbll_stats_array';
@@ -48,6 +51,11 @@ export const TimerState = Object.freeze({
 export const useSessionStore = defineStore('session', () => {
     const store = reactive(initialStore)
     const driveSync = useDriveSyncStore()
+    const settings = useSettingsStore()
+    const caseHistory = useCaseHistoryStore()
+    if (caseHistory.isNew) {
+        store.stats.forEach(caseHistory.add) // the results from before the latest ones were kept
+    }
 
     const timerState = ref(TimerState.NOT_RUNNING)
 
@@ -68,6 +76,7 @@ export const useSessionStore = defineStore('session', () => {
         }
         const [deleted] = store.stats.splice(i, 1)
         driveSync.queueDeletion(deleted)
+        caseHistory.remove(deleted)
         // rebuild indexes
         for (let j = Math.max(i - 1, 0); j < store.stats.length; j++) {
             store.stats[j].i = j
@@ -82,6 +91,13 @@ export const useSessionStore = defineStore('session', () => {
         return Object.keys(store.keysCount).filter(key => store.keysCount[key] === 0)
     });
 
+    // How often each of the selected cases comes up, compared to their average: a Map of every key to 2
+    // for twice as often, see case_weights.js. null while the cases come up alike.
+    const comesUp = computed(() => {
+        const alike = settings.store.weakCases === WeakCases.OFF || store.recapMode || store.keys.length === 0
+        return alike ? null : caseFrequencies(store.keys, caseHistory.resultsOf, settings.store.weakCases)
+    })
+
     // returns key
     const setRandomCase = () => {
         if (store.keys.length === 0) {
@@ -93,6 +109,12 @@ export const useSessionStore = defineStore('session', () => {
                 return setRandomCase() // recursively return random case with no recap mode
             }
             store.currentKey = random_element(casesWithZeroCount.value)
+        } else if (comesUp.value !== null) {
+            const chances = new Map(comesUp.value)
+            if (chances.size > 2) {
+                chances.delete(store.currentKey) // not the same case twice in a row
+            }
+            store.currentKey = pickWeighted(chances)
         } else {
             if (Math.random() < 0.2) {
                 // set current key to the least counted one (random if multiple)
@@ -171,6 +193,7 @@ export const useSessionStore = defineStore('session', () => {
             }
             store.stats.push(result)
             driveSync.queueSolves([result])
+            caseHistory.add(result)
         }
         setRandomCase()
         observingResult.value = index
@@ -204,6 +227,8 @@ export const useSessionStore = defineStore('session', () => {
         store.stats[i] = dnf
         driveSync.queueDeletion(solved)
         driveSync.queueSolves([dnf])
+        caseHistory.remove(solved)
+        caseHistory.add(dnf)
     }
 
     const stopTimer = (input = SolveInput.KEYBOARD) => {
@@ -232,6 +257,6 @@ export const useSessionStore = defineStore('session', () => {
     return { store, clearSession, setSelectedKeys, stats, deleteResult,
         observingResult, timerStarted, timerState, getTimerReady, startTimer, stopTimer,
         startRecap, currentScramble, casesWithZeroCount,
-        recordResult, replaceWithDnf, frozenMs, skipCase: setRandomCase
+        recordResult, replaceWithDnf, frozenMs, skipCase: setRandomCase, comesUp
     }
 });

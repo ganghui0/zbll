@@ -1,5 +1,6 @@
 import {reactive, watch} from 'vue'
 import {defineStore} from 'pinia'
+import {WeakCases} from "@/helpers/case_weights";
 
 export const fontsList = ["Roboto Mono", "Courier New", "Ubuntu Mono", "Arial", "Helvetica",
     "sans-serif", "Times", "serif",]
@@ -14,6 +15,8 @@ export const defaultSettings = {
     showHowTo: true,
     timerStartDelayMs: 100,
     scrambleAppendix: "None",
+    // how much more often than the others the cases come up that are solved slowly or not at all, a WeakCases
+    weakCases: WeakCases.MORE,
     // smart cube: time from the moment the case appears instead of from the first turn
     smartCubeTimeRecognition: false,
     // smart cube: turning the top face all the way around (U four times) starts the training like the

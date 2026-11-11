@@ -6,6 +6,7 @@ import {useI18n} from 'vue-i18n'
 import {useDisplayStore} from "@/stores/DisplayStore";
 import {CROSS_COLORS} from "@/helpers/cube_orientation";
 import DriveSync from "@/components/DriveSync.vue";
+import {WeakCases} from "@/helpers/case_weights";
 
 const {t} = useI18n()
 const themes = useThemeStore();
@@ -127,6 +128,17 @@ const onResetBtnClicked = () => {
           <option value="L U L'">L U L'</option>
           <option value="L U' L'">L U' L'</option>
 <!--          TODO add "R' U R", "R' U' R'", "Random R" and "Random/ALL"-->
+        </select>
+      </div>
+
+      <div class="mb-2">
+        <label for="weakCases" class="form-label">{{ $t("settings.weak_cases") }}</label>
+        <select
+            class="mx-2" tabindex="-1" @keydown.space.prevent=""
+            v-model="settings.store.weakCases" id="weakCases">
+          <option v-for="choice in WeakCases" :value="choice" :key="choice">
+            {{ $t("settings.weak_cases_" + choice) }}
+          </option>
         </select>
       </div>
 
