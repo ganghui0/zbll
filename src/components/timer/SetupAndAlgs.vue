@@ -1,11 +1,11 @@
 <script setup>
 import zbll_map_next from "@/assets/zbll_map_next.json"
 import {computed} from "vue";
-import {inverseScramble} from "@/helpers/scramble_utils";
+import {setupMoves} from "@/helpers/scramble_utils";
 const props = defineProps(['zbllKey', 'maxAmount']);
 
 const suggestedAlgs = computed(() => zbll_map_next[props.zbllKey].algs.slice(0, props.maxAmount))
-const setup = computed(() => inverseScramble(zbll_map_next[props.zbllKey].algs[0]))
+const setup = computed(() => setupMoves(zbll_map_next[props.zbllKey].algs))
 
 </script>
 
