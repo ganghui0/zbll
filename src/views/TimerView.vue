@@ -17,6 +17,7 @@ import {usePresetsStore, starredName} from "@/stores/PresetStore";
 import {useDisplayStore} from "@/stores/DisplayStore";
 import {useSmartCubeStore} from "@/stores/SmartCubeStore";
 import SmartCubeCase from "@/components/timer/SmartCubeCase.vue";
+import LastSolveStats from "@/components/timer/LastSolveStats.vue";
 import {SolveInput} from "@/sync/solve_record";
 
 const router = useRouter();
@@ -184,6 +185,7 @@ const onTimerTouchEnd = event => {
           >
             <SmartCubeCase v-if="smartCube.connected"/>
             <Timer/>
+            <LastSolveStats v-if="smartCube.connected"/>
           </div>
           <div v-if="displayStore.showSettings">
             <Settings/>

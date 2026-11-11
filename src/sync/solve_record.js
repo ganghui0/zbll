@@ -36,7 +36,7 @@ export const legacySolveId = (entry, origin = location.origin) =>
 export const caseSet = key => `${key}`.split(" ")[0]
 
 // What is not known is null: results from before solves were synced have no time, input or cross color,
-// and the cross color is only known for a smart cube.
+// and the cross color is only known for a smart cube. So is what follows it, see solve_stats.js.
 export const toSolveRecord = (entry, origin = location.origin) => ({
   id: entry.id,
   timestamp: entry.timestamp ?? null,
@@ -47,5 +47,10 @@ export const toSolveRecord = (entry, origin = location.origin) => ({
   scramble: entry.scramble,
   input: entry.input ?? null,
   crossColor: entry.crossColor ?? null,
+  recognitionMs: entry.recognitionMs ?? null,
+  executionMs: entry.executionMs ?? null,
+  moveCount: entry.moveCount ?? null,
+  turns: entry.turns ?? null,
+  turnTimesMs: entry.turnTimesMs ?? null,
   origin,
 })

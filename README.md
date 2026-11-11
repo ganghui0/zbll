@@ -24,6 +24,21 @@ the settings) and stops when the case is solved, then the next case comes up.
 - Drag the virtual cube with the mouse to look at it from another side. Double click to undo that, and to tell the
   trainer that you hold the cube upright right now.
 
+The cube tells more about a solve than its time:
+
+- *Execution* is the time from the first turn to the last, as the cube reports them. With the timer set to start
+  when the case appears, *recognition* is the time from then to the first turn, and the two add up to the time of
+  the solve.
+- Turning the top face to look at the case (a pre-AUF) is recognition: turns of the top face that are followed by a
+  pause of 0.3 seconds or more, before any other face is turned, do not start the execution. An AUF that goes
+  straight into the alg does. With the timer set to start at the first turn, it starts over when the execution does.
+- *Moves* counts the turns of the execution in the half turn metric: a double turn is one move, also when the cube
+  reports it as two quarter turns, and a slice move is two. *TPS* is moves per second of execution.
+- The line under the timer has these for the last solve while you are on the next case. The result card has them
+  next to your mean for the same case in the session, with the turns you made, the ones before the execution in
+  brackets. The cube only knows face turns: a wide move or a rotation shows up as the faces that turned, and
+  renames the faces that follow. The stats card has the mean and the best of the session.
+
 ## Sync to Google Drive
 
 Settings → *Sync to Google Drive* → *Sign in* keeps a history of every solve in your own Google Drive: the folder
@@ -36,6 +51,10 @@ only asks for the `drive.file` permission, which covers the files the trainer ma
 - The file holds all solves of all sessions, browsers and devices: `{"app", "version", "updatedAt", "solves": [...]}`,
   one solve on a line, with `id`, `timestamp` (ISO), `caseKey`, `set` (T, U, ...), `timeMs`, `dnf`, `scramble`,
   `input` (`keyboard`, `touch` or `smart_cube`), `crossColor` (smart cube only) and `origin` (the page it was done on).
+  A smart cube solve also has `executionMs`, `recognitionMs` (when the timer starts with the case), `moveCount`,
+  `turns` (all of them as reported, like `R U R' U R U U R'`) and `turnTimesMs` (when each turn was made, from the
+  first one). The execution starts `executionMs` before the last turn; the turns before that are not in `moveCount`.
+  They are `null` for other solves, for DNFs and for the solves from before they were recorded.
   A deleted result stays in the file with `deleted: true`; clearing the session does not touch the file. The results
   that were in the browser before the first sign in are sent too, without a time.
 - Google's access lasts an hour at a time. The trainer renews it by itself, in a hidden frame, where the browser lets

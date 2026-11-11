@@ -106,6 +106,26 @@
       "press_or_turn_to_start": "Press space, tap or turn U ×4 to start",
       "next_case": "Next case…"
     },
+    "solve_stats": {
+      "time": "Time",
+      "recognition": "Recognition",
+      "execution": "Execution",
+      "moves": "Moves",
+      "moves_hint": "Half turn metric: a double turn is one move, a slice move is two",
+      "tps": "TPS",
+      "this_solve": "This solve",
+      "case_mean": "Case mean ({count})",
+      "mean": "Mean",
+      "best": "Best",
+      "smart_cube_solves": "Smart cube: no solves | Smart cube: one solve | Smart cube: {count} solves",
+      "turns": "Turns:",
+      "turns_hint": "As the cube reports them: a wide move or a rotation renames the faces that follow, a slice move is two turns. In brackets: turns of the top face before a pause, they are recognition",
+      "last": "Last: {time}",
+      "recognition_short": "recog",
+      "execution_short": "exec",
+      "n_moves": "{count} move | {count} moves",
+      "tps_unit": "tps"
+    },
     "timer": {
       "no_scramble": "no scramble available",
       "scramble": "Scramble:",

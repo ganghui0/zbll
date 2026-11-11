@@ -1,7 +1,10 @@
 <script setup>
 import {computed, ref, watch} from "vue";
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
-import {resultToHumanReadable} from "@/helpers/time_formatter";
+import {msToHumanReadable, resultToHumanReadable} from "@/helpers/time_formatter";
+import {
+  formatTps, hasSolveStats, summarizeSolves, toMoves, turnsBeforeExecution, turnsPerSecond,
+} from "@/helpers/solve_stats";
 import {useSelectedStore} from "@/stores/SelectedStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import {formatZbllKey} from "@/helpers/helpers";
@@ -10,6 +13,7 @@ import { useI18n } from 'vue-i18n'
 import CubePicture from "@/components/timer/CubePicture.vue";
 import SetupAndAlgs from "@/components/timer/SetupAndAlgs.vue";
 import ZbllNote from "@/components/ZbllNote.vue";
+import SolveStatsTable from "@/components/timer/SolveStatsTable.vue";
 const { t } = useI18n()
 
 const sessionStore = useSessionStore()
@@ -23,6 +27,38 @@ const result = computed(() => {
           : {"i": 0, key: "", "scramble": "", "ms": 0}
     }
 )
+
+// What the smart cube told about the solve, next to the mean of the solves of the same case in the session
+const caseSolves = computed(() => summarizeSolves(sessionStore.stats().filter(other => other.key === result.value.key)))
+const withCaseMean = computed(() => caseSolves.value.count > 1)
+const solveStatsColumns = computed(() => withCaseMean.value
+    ? [t("solve_stats.this_solve"), t("solve_stats.case_mean", caseSolves.value.count)]
+    : [])
+const solveStatsRows = computed(() => {
+  const solve = result.value
+  const time = ms => ms == null ? "–" : msToHumanReadable(ms, settings.store.timerPrecision)
+  const moves = count => count == null ? "–" : Number.isInteger(count) ? `${count}` : count.toFixed(1)
+  const row = (name, format, value, hint) => ({
+    label: t("solve_stats." + name),
+    hint,
+    cells: [format(value), ...(withCaseMean.value ? [format(caseSolves.value[name]?.mean)] : [])],
+  })
+  return [
+    ...(solve.recognitionMs == null ? [] : [row("recognition", time, solve.recognitionMs)]),
+    row("execution", time, solve.executionMs),
+    row("moves", moves, solve.moveCount, t("solve_stats.moves_hint")),
+    row("tps", formatTps, turnsPerSecond(solve)),
+  ]
+})
+// the turns that were made, the ones before the execution apart
+const turns = computed(() => {
+  const all = result.value.turns.split(" ")
+  const before = turnsBeforeExecution(result.value)
+  return {
+    recognition: toMoves(all.slice(0, before)).join(" "),
+    execution: toMoves(all.slice(before)).join(" "),
+  }
+})
 
 const onDeleteBtnClicked = () => {
   if (isValid.value && confirm(t("result_card.are_you_sure_to_delete"))) {
@@ -73,6 +109,15 @@ const starClicked = () => {
         </div>
       </h5>
       <hr class="my-2 my-sm-3">
+      <template v-if="hasSolveStats(result)">
+        <SolveStatsTable :columns="solveStatsColumns" :rows="solveStatsRows"/>
+        <p class="card-text small my-1" :title="$t('solve_stats.turns_hint')">
+          <span class="opacity-75">{{ $t("solve_stats.turns") }}</span>
+          <span v-if="turns.recognition" class="opacity-75"> ({{ turns.recognition }})</span>
+          {{ turns.execution }}
+        </p>
+        <hr class="my-2 my-sm-3">
+      </template>
       <p class="card-text my-0 my-sm-1">
         <span class="d-sm-inline-block d-none">{{$t("result_card.case")}}</span>
         {{ formatZbllKey(result["key"]) }}

@@ -27,7 +27,7 @@ const initialStore = JSON.parse(localStorage.getItem(storeKey)) || {
     "currentScramble": null,
 
     // array of objects: {i=index, key, scramble, ms, dnf, id, timestamp=ISO time, input=a SolveInput,
-    // crossColor (smart cube only)}
+    // crossColor (smart cube only), and for a smart cube solve what is listed in solve_stats.js}
     "stats": initialStats,
 }
 
@@ -144,7 +144,8 @@ export const useSessionStore = defineStore('session', () => {
 
     // adds a result for the current case and moves on to the next case
     // input: a SolveInput, how the solve was timed. crossColor: of a smart cube solve.
-    const recordResult = (ms, {dnf = false, input = SolveInput.KEYBOARD, crossColor} = {}) => {
+    // details: what a smart cube tells about the solve, see solve_stats.js
+    const recordResult = (ms, {dnf = false, input = SolveInput.KEYBOARD, crossColor, details} = {}) => {
         const index = store.stats.length
         if (store.currentKey !== null) {
             const key = store.currentKey
@@ -160,6 +161,7 @@ export const useSessionStore = defineStore('session', () => {
             if (crossColor) {
                 result.crossColor = crossColor
             }
+            Object.assign(result, details)
             if (dnf) {
                 result.dnf = true // not counted, so that a recap brings the case back
             } else {

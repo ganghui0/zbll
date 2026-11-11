@@ -4,6 +4,7 @@ import {connectSmartCube, cubeTimestampLinearFit, now} from "smartcube-web-bluet
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import {SolveInput} from "@/sync/solve_record";
+import {countMoves, executionStart} from "@/helpers/solve_stats";
 import {applyAlg, applyMove, isSolved, mapAlg, parseMove, solvedState} from "@/helpers/cube_state";
 import {
     createGyroView, GyroMode, gyroQuaternion, homeOrientations, nearestOrientation, qConj, qMul,
@@ -104,11 +105,14 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
     let solvedFront = 0
     let turnLog = [] // {move, cubeTimestamp, localTimestamp, arrivedAt} of the current case
     let shownAt = 0
+    // The turn that the running timer was started with, when it starts at the first turn: its index in turnLog.
+    let timedFrom = 0
     let nextCaseTimer = 0
     let confirmTimer = 0
 
-    const recordResult = (ms, dnf) => session.recordResult(ms, {
-        dnf, input: SolveInput.SMART_CUBE, crossColor: settings.store.smartCubeCrossColor,
+    // details: of a solve, see solve_stats.js
+    const recordResult = (ms, dnf, details) => session.recordResult(ms, {
+        dnf, input: SolveInput.SMART_CUBE, crossColor: settings.store.smartCubeCrossColor, details,
     })
 
     // Gestures, for hands that stay on the cube: a face turned all the way around in one direction, which
@@ -143,9 +147,11 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         }
         return face === toCube.D && turned <= 0 ? Gesture.STOP : null
     }
-    // The time of a solve that was waiting to be confirmed when the cube was turned again, or null. If that
-    // turn opens the stop gesture, the solve counts after all.
-    let interruptedSolveMs = null
+    // The solve that waits to be confirmed, see solveResult.
+    let solve = null
+    // The solve that was waiting to be confirmed when the cube was turned again, or null. If that turn opens
+    // the stop gesture, the solve counts after all.
+    let interruptedSolve = null
 
     const clearTimers = () => {
         clearTimeout(nextCaseTimer)
@@ -176,7 +182,8 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         setCubeState(caseStart)
         showUpright(GyroMode.HOLD)
         turnLog = []
-        interruptedSolveMs = null
+        solve = interruptedSolve = null
+        timedFrom = 0
         shownAt = now()
         phase.value = Phase.SHOWN
         session.frozenMs = null
@@ -199,36 +206,50 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         }
     }
 
-    // time from the first to the last turn of the current case
-    const executionMs = () => {
+    // when each turn of the current case was made, in ms after the first one
+    const turnTimes = () => {
         const first = turnLog[0]
-        const last = turnLog[turnLog.length - 1]
-        const byArrival = last.arrivedAt - first.arrivedAt
         if (turnLog.some(turn => turn.cubeTimestamp == null)) {
-            return byArrival
+            return turnLog.map(turn => turn.arrivedAt - first.arrivedAt)
         }
         // Turns reach us in bursts, the cube's own timestamps are evenly clocked but that clock runs a bit
         // fast or slow. The fit gives the cube's timestamps at the pace of our clock.
-        const byCube = last.cubeTimestamp - first.cubeTimestamp
-        const fitted = cubeTimestampLinearFit(turnLog.map(turn => ({...turn})))
-        const byFit = fitted[fitted.length - 1].cubeTimestamp
-        return Number.isFinite(byFit) && Math.abs(byFit - byCube) <= byCube * MAX_CLOCK_SKEW ? byFit : byCube
+        const byCube = turnLog.map(turn => turn.cubeTimestamp - first.cubeTimestamp)
+        const byFit = cubeTimestampLinearFit(turnLog.map(turn => ({...turn}))).map(turn => turn.cubeTimestamp)
+        const cubeMs = byCube[byCube.length - 1]
+        const fitMs = byFit[byFit.length - 1]
+        return Number.isFinite(fitMs) && Math.abs(fitMs - cubeMs) <= cubeMs * MAX_CLOCK_SKEW ? byFit : byCube
     }
 
-    const solveMs = () => {
-        const recognitionMs = settings.store.smartCubeTimeRecognition ? Math.max(0, turnLog[0].arrivedAt - shownAt) : 0
-        return Math.round(recognitionMs + executionMs())
+    // the turns of the current case by position, U for the face that is held on top, with that side in front
+    const turnsByPosition = inFront => {
+        const toPosition = Object.fromEntries(
+            Object.entries(homes.value[inFront].toCube).map(([position, face]) => [face, position]))
+        return turnLog.map(turn => toPosition[turn.move[0]] + turn.move.slice(1))
+    }
+
+    // The solve that the last turn completed: {ms: its time, details: as in solve_stats.js}
+    const solveResult = () => {
+        const turnTimesMs = turnTimes().map(Math.round)
+        const turns = turnsByPosition(solvedFront)
+        // turns of the top face to look at the case are recognition, the execution starts after them
+        const start = executionStart(turns, turnTimesMs)
+        const executionMs = turnTimesMs[turnTimesMs.length - 1] - turnTimesMs[start]
+        const details = {executionMs, moveCount: countMoves(turns.slice(start)), turns: turns.join(" "), turnTimesMs}
+        if (settings.store.smartCubeTimeRecognition) {
+            details.recognitionMs = Math.max(0, Math.round(turnLog[0].arrivedAt - shownAt)) + turnTimesMs[start]
+        }
+        return {ms: (details.recognitionMs ?? 0) + executionMs, details}
     }
 
     const confirmSolve = () => {
         clearTimers()
-        const ms = session.frozenMs
         session.frozenMs = null
         if (solvedFront !== front) {
             setFront(solvedFront)
             setCubeState(candidates[front])
         }
-        recordResult(ms, false)
+        recordResult(solve.ms, false, solve.details)
         session.timerState = TimerState.NOT_RUNNING
         scheduleNextCase()
     }
@@ -267,7 +288,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             session.startTimer()
         }
         if (phase.value === Phase.CONFIRMING) { // turned again right after the solved state: go on solving
-            interruptedSolveMs = session.frozenMs
+            interruptedSolve = solve
             clearTimers()
             session.frozenMs = null
         }
@@ -279,11 +300,21 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             localTimestamp: event.localTimestamp, // null for a turn that was recovered after a lost packet
             arrivedAt: event.timestamp,
         })
+        if (!settings.store.smartCubeTimeRecognition) {
+            // The timer runs for the execution. It starts over when the turns before this one turn out to
+            // have been made to look at the case, see executionStart.
+            const start = executionStart(turnsByPosition(front), turnTimes())
+            if (start > timedFrom) {
+                timedFrom = start
+                session.startTimer()
+            }
+        }
         if (stop) {
-            if (interruptedSolveMs !== null && isSolved(candidates[solvedFront])) {
-                // the gesture left the cube as it was, solved: the case counts, with the time it had then
+            if (interruptedSolve !== null && isSolved(candidates[solvedFront])) {
+                // the gesture left the cube as it was, solved: the case counts, as it was solved then
                 phase.value = Phase.CONFIRMING
-                session.frozenMs = interruptedSolveMs
+                solve = interruptedSolve
+                session.frozenMs = solve.ms
             }
             endAttempt(false)
             return
@@ -294,7 +325,8 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             solvedFront = solved.includes(front) ? front : solved[0]
             phase.value = Phase.CONFIRMING
             sameTurns = null // the turn that solved the case is not part of a gesture
-            session.frozenMs = solveMs() // shown already, but only counts once confirmed
+            solve = solveResult()
+            session.frozenMs = solve.ms // shown already, but only counts once confirmed
             confirmTimer = setTimeout(confirmSolve, SOLVE_CONFIRM_MS)
         }
     }

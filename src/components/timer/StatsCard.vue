@@ -1,7 +1,9 @@
 <script setup>
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {computed, onMounted, ref, watch} from "vue";
-import {resultToHumanReadable} from "@/helpers/time_formatter";
+import {msToHumanReadable, resultToHumanReadable} from "@/helpers/time_formatter";
+import {formatTps, summarizeSolves} from "@/helpers/solve_stats";
+import SolveStatsTable from "@/components/timer/SolveStatsTable.vue";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import {useSelectedStore} from "@/stores/SelectedStore";
 import {useI18n} from 'vue-i18n'
@@ -25,6 +27,23 @@ onMounted(() => {
 })
 
 const statClicked = i => sessionStore.observingResult = i
+
+// of the solves that a smart cube told more about than their time
+const smartCubeSolves = computed(() => summarizeSolves(sessionStore.stats()))
+const smartCubeRows = computed(() => {
+  const time = ms => msToHumanReadable(ms, settings.store.timerPrecision)
+  const row = (name, format) => {
+    const {mean, best} = smartCubeSolves.value[name]
+    return {label: t("solve_stats." + name), cells: [format(mean), format(best)]}
+  }
+  // without a recognition time the time of a solve is that of its execution
+  const split = smartCubeSolves.value.recognition !== null
+  return [
+    ...(split ? [row("time", time), row("recognition", time)] : []),
+    row("execution", time),
+    ...(smartCubeSolves.value.tps === null ? [] : [row("tps", formatTps)]),
+  ]
+})
 
 </script>
 
@@ -61,6 +80,11 @@ const statClicked = i => sessionStore.observingResult = i
           {{t("stats_card.hold_spacebar_hint")}}
         </div>
       </div>
+      <template v-if="smartCubeSolves.count > 0">
+        <hr>
+        <div class="mb-1">{{ t("solve_stats.smart_cube_solves", smartCubeSolves.count) }}</div>
+        <SolveStatsTable :columns="[t('solve_stats.mean'), t('solve_stats.best')]" :rows="smartCubeRows"/>
+      </template>
     </div>
   </div>
 </template>
