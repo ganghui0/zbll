@@ -159,7 +159,7 @@ const starClicked = () => {
       </div>
       <CubePicture :scramble="result['scramble']"/>
       <p class="card-text my-0 my-sm-1">
-        <SetupAndAlgs :zbllKey="result['key']" :maxAmount="3"/>
+        <SetupAndAlgs :zbllKey="result['key']" :maxAmount="3" :scramble="result['scramble']"/>
       </p>
       <p class="d-sm-block d-none card-text my-0 my-sm-1">
         <span class="">{{$t("result_card.scramble")}}&nbsp;</span>

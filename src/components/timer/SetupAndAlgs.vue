@@ -2,10 +2,22 @@
 import zbll_map_next from "@/assets/zbll_map_next.json"
 import {computed} from "vue";
 import {setupMoves} from "@/helpers/scramble_utils";
-const props = defineProps(['zbllKey', 'maxAmount']);
+import {fromSide, sideOfCase} from "@/helpers/alg_turns";
+// scramble: the one that the picture next to the algs is drawn from, if it is
+const props = defineProps(['zbllKey', 'maxAmount', 'scramble']);
 
-const suggestedAlgs = computed(() => zbll_map_next[props.zbllKey].algs.slice(0, props.maxAmount))
-const setup = computed(() => setupMoves(zbll_map_next[props.zbllKey].algs))
+// The algs are written for the case as it is drawn in the list of cases. A scramble shows the case from any
+// side: next to its picture the algs, and the setup with them, are for that side.
+const algs = computed(() => {
+  const written = zbll_map_next[props.zbllKey].algs
+  if (!props.scramble) {
+    return written
+  }
+  const side = sideOfCase(props.scramble, written)
+  return written.map(alg => fromSide(alg, side))
+})
+const suggestedAlgs = computed(() => algs.value.slice(0, props.maxAmount))
+const setup = computed(() => setupMoves(algs.value))
 
 </script>
 
