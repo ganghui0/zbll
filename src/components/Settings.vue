@@ -5,6 +5,7 @@ import {defaultDarkName, defaultLightName, useThemeStore} from "@/stores/ThemeSt
 import {useI18n} from 'vue-i18n'
 import {useDisplayStore} from "@/stores/DisplayStore";
 import {CROSS_COLORS} from "@/helpers/cube_orientation";
+import DriveSync from "@/components/DriveSync.vue";
 
 const {t} = useI18n()
 const themes = useThemeStore();
@@ -169,6 +170,8 @@ const onResetBtnClicked = () => {
       </div>
 
     </form>
+    <hr>
+    <DriveSync/>
   </div>
 </template>
 

@@ -17,6 +17,7 @@ import {usePresetsStore, starredName} from "@/stores/PresetStore";
 import {useDisplayStore} from "@/stores/DisplayStore";
 import {useSmartCubeStore} from "@/stores/SmartCubeStore";
 import SmartCubeCase from "@/components/timer/SmartCubeCase.vue";
+import {SolveInput} from "@/sync/solve_record";
 
 const router = useRouter();
 const sessionStore = useSessionStore()
@@ -139,7 +140,7 @@ const onTimerTouchStart = event => {
   if (smartCube.connected) {
     smartCube.handleKey(" ")
   } else if (sessionStore.timerState === TimerState.RUNNING) {
-    sessionStore.stopTimer()
+    sessionStore.stopTimer(SolveInput.TOUCH)
   } else if (sessionStore.timerState === TimerState.NOT_RUNNING && sessionStore.currentScramble) {
     sessionStore.getTimerReady(settings.store.timerStartDelayMs)
   }

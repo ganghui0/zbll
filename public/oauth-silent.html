@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex">
+    <title>ZBLL trainer</title>
+</head>
+<body>
+<script>
+  // Sync to Google Drive: Google answers a request for a new access token by sending a hidden frame of the
+  // trainer to this page, with the answer after the #. It is passed on to the trainer, see src/sync/google_auth.js
+  if (window.parent !== window) {
+    window.parent.postMessage({type: "zbll-oauth-silent", hash: location.hash}, location.origin)
+  }
+</script>
+</body>
+</html>

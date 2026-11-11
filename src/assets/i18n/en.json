@@ -66,6 +66,28 @@
       "smart_cube_timing_first_turn": "At the first turn",
       "smart_cube_timing_case_shown": "When the case appears"
     },
+    "drive_sync": {
+      "title": "Sync to Google Drive",
+      "sign_in": "Sign in",
+      "sign_in_again": "Sign in again",
+      "sign_out": "Sign out",
+      "not_configured": "Not set up: this build has no Google client ID, see the README.",
+      "signed_out": "Not signed in. Results stay in this browser.",
+      "signed_in": "Signed in.",
+      "signed_in_as": "Signed in as {email}.",
+      "last_synced": "Last synced {time}",
+      "not_synced_yet": "Not synced yet",
+      "n_waiting": "no results waiting | one result waiting | {count} results waiting",
+      "syncing": "syncing…",
+      "sign_in_again_hint": "Google Drive sync: sign in again to go on. Results are kept until then.",
+      "problem_offline": "No connection. Results are kept and sent when it is back.",
+      "problem_drive": "Google Drive answered with an error. Results are kept, trying again.",
+      "problem_file": "zbll-trainer-stats.json in Google Drive is not a stats file any more. Results are kept until it is repaired or removed.",
+      "problem_storage": "The storage of this browser is full, a result could not be queued.",
+      "sign_in_blocked": "The browser blocked Google's sign in window. Allow pop-ups for this page, or just try again.",
+      "sign_in_no_drive": "Signed in, but without access to Google Drive. Sign in again and tick the box for Google Drive.",
+      "sign_in_failed": "Could not sign in to Google:"
+    },
     "colors": {
       "white": "White",
       "yellow": "Yellow",

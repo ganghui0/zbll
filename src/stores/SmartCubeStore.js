@@ -3,6 +3,7 @@ import {computed, ref, shallowRef, watch} from "vue";
 import {connectSmartCube, cubeTimestampLinearFit, now} from "smartcube-web-bluetooth";
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
+import {SolveInput} from "@/sync/solve_record";
 import {applyAlg, applyMove, isSolved, mapAlg, parseMove, solvedState} from "@/helpers/cube_state";
 import {
     createGyroView, GyroMode, gyroQuaternion, homeOrientations, nearestOrientation, qConj, qMul,
@@ -105,6 +106,10 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
     let shownAt = 0
     let nextCaseTimer = 0
     let confirmTimer = 0
+
+    const recordResult = (ms, dnf) => session.recordResult(ms, {
+        dnf, input: SolveInput.SMART_CUBE, crossColor: settings.store.smartCubeCrossColor,
+    })
 
     // Gestures, for hands that stay on the cube: a face turned all the way around in one direction, which
     // leaves the cube as it was and is in no alg. The top face clockwise (U U U U) starts the training like
@@ -223,7 +228,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
             setFront(solvedFront)
             setCubeState(candidates[front])
         }
-        session.recordResult(ms)
+        recordResult(ms, false)
         session.timerState = TimerState.NOT_RUNNING
         scheduleNextCase()
     }
@@ -312,7 +317,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         if (phase.value === Phase.CONFIRMING) { // already solved, no need to wait for the confirmation
             confirmSolve()
         } else if (record) {
-            session.recordResult(turnLog.length > 0 ? now() - turnLog[0].arrivedAt : 0, true)
+            recordResult(turnLog.length > 0 ? now() - turnLog[0].arrivedAt : 0, true)
             setCubeState(caseStart)
         } else {
             session.skipCase() // the case has been seen

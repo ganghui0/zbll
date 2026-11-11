@@ -7,12 +7,14 @@ import {useRouter, useRoute} from "vue-router";
 import {computed} from "vue";
 import {useSessionStore} from "@/stores/SessionStore";
 import {ConnectionStatus, useSmartCubeStore} from "@/stores/SmartCubeStore";
+import {useDriveSyncStore} from "@/stores/DriveSyncStore";
 import {useI18n} from 'vue-i18n'
 
 const {t} = useI18n()
 const selected = useSelectedStore();
 const session = useSessionStore()
 const smartCube = useSmartCubeStore()
+const driveSync = useDriveSyncStore()
 const router = useRouter();
 const route = useRoute()
 const displayStore = useDisplayStore()
@@ -46,6 +48,10 @@ const onSmartCubeBtnClicked = async () => {
     }
   }
 }
+
+// Shown when the sync to Google Drive cannot go on without the user. If Google's window does not come up
+// or is closed, the button just stays; the settings tell more.
+const onDriveSignInClicked = () => driveSync.signIn()
 </script>
 
 <template>
@@ -91,6 +97,15 @@ const onSmartCubeBtnClicked = async () => {
             @click="onSmartCubeBtnClicked"
             :aria-label="smartCubeBtnLabel">
           <i class="bi-bluetooth font_bigger"/>
+        </button>
+        <button
+            v-if="driveSync.needsSignIn"
+            class="btn btn-link px-1 px-md-3 text-warning"
+            tabindex="-1" @keydown.space.prevent=""
+            :disabled="driveSync.signingIn"
+            @click="onDriveSignInClicked"
+            :title="$t('drive_sync.sign_in_again_hint')">
+          <i class="bi-cloud-slash font_bigger"/>
         </button>
         <button
             class="btn btn-link px-1 px-md-3"

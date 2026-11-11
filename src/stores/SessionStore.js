@@ -2,6 +2,8 @@ import {defineStore} from 'pinia'
 import {computed, reactive, ref, watch} from "vue";
 import {random_element} from "@/helpers/helpers";
 import {makeScramble} from "@/helpers/scramble_utils"
+import {useDriveSyncStore} from "@/stores/DriveSyncStore";
+import {legacySolveId, newSolveId, SolveInput} from "@/sync/solve_record";
 
 const statsKey = 'zbll_stats_array';
 const initialStats = JSON.parse(localStorage.getItem(statsKey)) || []
@@ -24,8 +26,14 @@ const initialStore = JSON.parse(localStorage.getItem(storeKey)) || {
 
     "currentScramble": null,
 
-    // array of objects: {i=index, key, scramble, ms}
+    // array of objects: {i=index, key, scramble, ms, dnf, id, timestamp=ISO time, input=a SolveInput,
+    // crossColor (smart cube only)}
     "stats": initialStats,
+}
+
+// results from before solves had ids
+for (const result of initialStore.stats) {
+    result.id ??= legacySolveId(result)
 }
 
 export const TimerState = Object.freeze({
@@ -39,6 +47,7 @@ export const TimerState = Object.freeze({
 // store for current case/scramble and stats
 export const useSessionStore = defineStore('session', () => {
     const store = reactive(initialStore)
+    const driveSync = useDriveSyncStore()
 
     const timerState = ref(TimerState.NOT_RUNNING)
 
@@ -57,7 +66,8 @@ export const useSessionStore = defineStore('session', () => {
         if (!store.stats[i].dnf && store.keysCount[key] > 0) { // a DNF was never counted
             store.keysCount[key]--
         }
-        store.stats.splice(i, 1)
+        const [deleted] = store.stats.splice(i, 1)
+        driveSync.queueDeletion(deleted)
         // rebuild indexes
         for (let j = Math.max(i - 1, 0); j < store.stats.length; j++) {
             store.stats[j].i = j
@@ -133,7 +143,8 @@ export const useSessionStore = defineStore('session', () => {
     }
 
     // adds a result for the current case and moves on to the next case
-    const recordResult = (ms, dnf = false) => {
+    // input: a SolveInput, how the solve was timed. crossColor: of a smart cube solve.
+    const recordResult = (ms, {dnf = false, input = SolveInput.KEYBOARD, crossColor} = {}) => {
         const index = store.stats.length
         if (store.currentKey !== null) {
             const key = store.currentKey
@@ -141,7 +152,13 @@ export const useSessionStore = defineStore('session', () => {
                 "i": index,
                 "key": key,
                 "scramble": currentScramble.value,
-                "ms": ms
+                "ms": ms,
+                "id": newSolveId(),
+                "timestamp": new Date().toISOString(),
+                "input": input,
+            }
+            if (crossColor) {
+                result.crossColor = crossColor
             }
             if (dnf) {
                 result.dnf = true // not counted, so that a recap brings the case back
@@ -149,13 +166,14 @@ export const useSessionStore = defineStore('session', () => {
                 store.keysCount[key]++;
             }
             store.stats.push(result)
+            driveSync.queueSolves([result])
         }
         setRandomCase()
         observingResult.value = index
     }
 
-    const stopTimer = () => {
-        recordResult(Date.now() - timerStarted.value)
+    const stopTimer = (input = SolveInput.KEYBOARD) => {
+        recordResult(Date.now() - timerStarted.value, {input})
         timerState.value = TimerState.STOPPING;
     }
 
@@ -164,6 +182,9 @@ export const useSessionStore = defineStore('session', () => {
     const frozenMs = ref(null)
 
     watch(store, () => { localStorage.setItem(storeKey, JSON.stringify(store)) })
+
+    // signed in to Google Drive, here or in another tab: the results that are stored here go there too
+    watch(() => driveSync.enabled, enabled => enabled && driveSync.queueSolves(store.stats))
 
     const startRecap = () => {
         resetKeysCount()
