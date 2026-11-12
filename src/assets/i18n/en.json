@@ -138,7 +138,7 @@
       "auf_n_fluent": "{fluent} of {count} fluent",
       "auf_case_n_fluent": "this case: {fluent} of {count} fluent",
       "auf_least_fluent": "least fluent:",
-      "auf_hint": "The turns of the top face that end the solve, timed from the last turn of the alg. Fluent: one move right after the alg, so you knew it. Paused: one move after a pause, 0.25 seconds or more and at least twice your usual time from one move to the next. Corrected: more than one move, like U' U2. The case is judged by its last 5 solves that ended with an AUF.",
+      "auf_hint": "The turns of the top face that end the solve, timed from the last turn of the alg. Fluent: one move right after the alg, so you knew it. Paused: one move after a pause, 0.25 seconds or more and at least twice your usual time from one move to the next. Corrected: more than one move, like U' U2, or U and after a pause U again. The case is judged by its last 5 solves that ended with an AUF.",
       "auf_session_hint": "How many of the solves that ended with an AUF had a fluent one: one move right after the alg, without a pause and without a correction like U' U2. Least fluent: the cases with the most AUFs that were not, and how many of their last 5 were. Click a case to see its pictures, algs and results."
     },
     "timer": {

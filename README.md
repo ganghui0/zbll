@@ -69,10 +69,10 @@ The cube tells more about a solve than its time:
   time shows. It is the turns of the top face after the last turn of another face, timed from that turn. If you
   know which AUF is coming you make it as one more move of the alg: a *fluent* AUF. If you do not, you have to look
   first: the AUF is *paused*, one move after a pause (0.25 seconds or more, and at least twice your usual time from
-  one move of the alg to the next, so that slow turning is not a pause; a double turn with such a pause in the
-  middle counts too), or *corrected*, more than one move, like U' U2, or U U' on a cube that was solved already.
-  A solve that ends without an AUF tells nothing. A case is judged by its last 5 solves of the session that ended
-  with an AUF. A case whose AUF you do not know also comes up more often, see *Weak cases*.
+  one move of the alg to the next, so that slow turning is not a pause), or *corrected*, more than one move, like
+  U' U2, U and after a pause U again, or U U' on a cube that was solved already. A solve that ends without an AUF
+  tells nothing. A case is judged by its last 5 solves of the session that ended with an AUF. A case whose AUF you
+  do not know also comes up more often, see *Weak cases*.
 - The line under the timer has these for the last solve while you are on the next case, the AUF in green, yellow or
   red. The result card has them next to your mean for the same case in the session, with the turns you made, the
   ones before the execution in brackets, and with how many of the latest AUFs of the case were fluent. The cube

@@ -75,8 +75,9 @@ export const turnsPerSecond = result =>
 // Neither the recognition time nor the execution time tells the two apart.
 export const Auf = Object.freeze({
   FLUENT: "fluent", // one move, right after the alg
-  PAUSED: "paused", // one move, after a pause or (a double turn) with a pause in it
-  CORRECTED: "corrected", // more than one move: U' U2, or U U' on a cube that was solved already
+  PAUSED: "paused", // one move, after a pause
+  // more than one move: U' U2, U and after a pause U again, or U U' on a cube that was solved already
+  CORRECTED: "corrected",
 })
 
 // A turn of the AUF comes after a pause when it takes this long, and not less than this many times the
@@ -106,13 +107,22 @@ export const finalAuf = result => {
   const usualMoveMs = algMoveTimes.length < 2 ? 0
       : median(algMoveTimes.slice(1).map((time, move) => time - algMoveTimes[move]))
   const pauseMs = Math.max(AUF_PAUSE_MS, AUF_PAUSE_MOVES * usualMoveMs)
-  const paused = times.slice(start).some((time, turn) => time - times[start + turn - 1] >= pauseMs)
-  const moves = toMoves(turns.slice(start))
+  const pausedBefore = turn => times[turn] - times[turn - 1] >= pauseMs
+  // The turns of the AUF that follow each other without a pause. Two quarter turns the same way are a
+  // double turn only within these: U, a pause and U again is a U that was not enough, not a U2.
+  const runs = []
+  for (let turn = start; turn < turns.length; turn++) {
+    if (turn === start || pausedBefore(turn)) {
+      runs.push([])
+    }
+    runs[runs.length - 1].push(turns[turn])
+  }
+  const moves = runs.flatMap(toMoves)
   return {
     start,
     moves: moves.join(" "),
     ms: times[times.length - 1] - times[start - 1],
-    kind: moves.length > 1 ? Auf.CORRECTED : paused ? Auf.PAUSED : Auf.FLUENT,
+    kind: moves.length > 1 ? Auf.CORRECTED : pausedBefore(start) ? Auf.PAUSED : Auf.FLUENT,
   }
 }
 
