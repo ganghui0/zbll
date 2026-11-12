@@ -55,6 +55,8 @@ export const useSessionStore = defineStore('session', () => {
     const caseHistory = useCaseHistoryStore()
     if (caseHistory.isNew) {
         store.stats.forEach(caseHistory.add) // the results from before the latest ones were kept
+    } else {
+        store.stats.forEach(caseHistory.addAuf) // the results from before their AUF was kept
     }
 
     const timerState = ref(TimerState.NOT_RUNNING)

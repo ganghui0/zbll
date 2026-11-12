@@ -128,7 +128,18 @@
       "recognition_short": "recog",
       "execution_short": "exec",
       "n_moves": "{count} move | {count} moves",
-      "tps_unit": "tps"
+      "tps_unit": "tps",
+      "auf": "AUF",
+      "auf_label": "AUF:",
+      "auf_fluent": "fluent",
+      "auf_paused": "paused",
+      "auf_corrected": "corrected",
+      "auf_none": "none",
+      "auf_n_fluent": "{fluent} of {count} fluent",
+      "auf_case_n_fluent": "this case: {fluent} of {count} fluent",
+      "auf_least_fluent": "least fluent:",
+      "auf_hint": "The turns of the top face that end the solve, timed from the last turn of the alg. Fluent: one move right after the alg, so you knew it. Paused: one move after a pause, 0.25 seconds or more and at least twice your usual time from one move to the next. Corrected: more than one move, like U' U2. The case is judged by its last 5 solves that ended with an AUF.",
+      "auf_session_hint": "How many of the solves that ended with an AUF had a fluent one: one move right after the alg, without a pause and without a correction like U' U2. Least fluent: the cases with the most AUFs that were not, and how many of their last 5 were. Click a case to see its pictures, algs and results."
     },
     "timer": {
       "no_scramble": "no scramble available",
@@ -165,7 +176,7 @@
       "setup_moves": "Setup",
       "recent_results": "Recent:",
       "comes_up": "comes up ×{times}",
-      "recent_results_hint": "The latest results of this case, which tell how weak it is. ×2 means that it comes up twice as often as the average case you train.",
+      "recent_results_hint": "The latest results of this case, which tell how weak it is. A smart cube solve in yellow ended with an AUF after a pause, one in red with a corrected AUF: it counts as a slower solve. ×2 means that the case comes up twice as often as the average case you train.",
       "algorithms_collection": "Algs"
     },
     "hotkeys": {

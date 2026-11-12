@@ -3,11 +3,11 @@ import {computed, ref, watch} from "vue";
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {msToHumanReadable, resultToHumanReadable} from "@/helpers/time_formatter";
 import {
-  formatTps, hasSolveStats, summarizeSolves, toMoves, turnsBeforeExecution, turnsPerSecond,
+  aufTextClass, finalAuf, formatTps, hasSolveStats, latestAufs, summarizeSolves, toMoves, turnsBeforeExecution,
+  turnsPerSecond,
 } from "@/helpers/solve_stats";
 import {useSelectedStore} from "@/stores/SelectedStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
-import {useCaseHistoryStore} from "@/stores/CaseHistoryStore";
 import {WeakCases} from "@/helpers/case_weights";
 import {formatZbllKey} from "@/helpers/helpers";
 import {usePresetsStore, starredName} from "@/stores/PresetStore";
@@ -16,13 +16,13 @@ import CubePicture from "@/components/timer/CubePicture.vue";
 import SetupAndAlgs from "@/components/timer/SetupAndAlgs.vue";
 import ZbllNote from "@/components/ZbllNote.vue";
 import SolveStatsTable from "@/components/timer/SolveStatsTable.vue";
+import RecentResults from "@/components/timer/RecentResults.vue";
 const { t } = useI18n()
 
 const sessionStore = useSessionStore()
 const selectedStore = useSelectedStore()
 const settings = useSettingsStore()
 const presets = usePresetsStore()
-const caseHistory = useCaseHistoryStore()
 const isValid = computed(() => sessionStore.stats().length > sessionStore.observingResult)
 const result = computed(() => {
       return isValid.value
@@ -32,7 +32,12 @@ const result = computed(() => {
 )
 
 // What the smart cube told about the solve, next to the mean of the solves of the same case in the session
-const caseSolves = computed(() => summarizeSolves(sessionStore.stats().filter(other => other.key === result.value.key)))
+const caseResults = computed(() => sessionStore.stats().filter(other => other.key === result.value.key))
+const caseSolves = computed(() => summarizeSolves(caseResults.value))
+// The AUF that ended the solve, or null, and how fluent the latest AUFs of the case were: that tells whether
+// the AUF of its alg is known
+const auf = computed(() => finalAuf(result.value))
+const caseAufs = computed(() => latestAufs(caseResults.value))
 const withCaseMean = computed(() => caseSolves.value.count > 1)
 const solveStatsColumns = computed(() => withCaseMean.value
     ? [t("solve_stats.this_solve"), t("solve_stats.case_mean", caseSolves.value.count)]
@@ -51,23 +56,18 @@ const solveStatsRows = computed(() => {
     row("execution", time, solve.executionMs),
     row("moves", moves, solve.moveCount, t("solve_stats.moves_hint")),
     row("tps", formatTps, turnsPerSecond(solve)),
+    row("auf", time, auf.value?.ms, t("solve_stats.auf_hint")),
   ]
 })
-// the turns that were made, the ones before the execution apart
+// the turns that were made, the ones before the execution and the AUF that ended it apart
 const turns = computed(() => {
   const all = result.value.turns.split(" ")
   const before = turnsBeforeExecution(result.value)
   return {
     recognition: toMoves(all.slice(0, before)).join(" "),
-    execution: toMoves(all.slice(before)).join(" "),
+    alg: toMoves(all.slice(before, auf.value?.start)).join(" "),
   }
 })
-
-// What makes the case come up more or less often than the others, see case_weights.js: its latest results,
-// and how often that is if it is among the cases that are trained.
-const recentResults = computed(() => settings.store.weakCases === WeakCases.OFF ? []
-    : caseHistory.resultsOf(result.value.key).map(recent => resultToHumanReadable(recent, settings.store.timerPrecision)))
-const comesUp = computed(() => sessionStore.comesUp?.get(result.value.key)?.toFixed(1) ?? null)
 
 const onDeleteBtnClicked = () => {
   if (isValid.value && confirm(t("result_card.are_you_sure_to_delete"))) {
@@ -123,7 +123,14 @@ const starClicked = () => {
         <p class="card-text small my-1" :title="$t('solve_stats.turns_hint')">
           <span class="opacity-75">{{ $t("solve_stats.turns") }}</span>
           <span v-if="turns.recognition" class="opacity-75"> ({{ turns.recognition }})</span>
-          {{ turns.execution }}
+          {{ turns.alg }}
+          <span v-if="auf" :class="aufTextClass(auf.kind)">{{ auf.moves }}</span>
+        </p>
+        <p v-if="caseAufs.count > 0" class="card-text small my-1" :title="$t('solve_stats.auf_hint')">
+          <span class="opacity-75 me-1">{{ $t("solve_stats.auf_label") }}</span>
+          <span v-if="auf" :class="aufTextClass(auf.kind)">{{ $t("solve_stats.auf_" + auf.kind) }}</span>
+          <span v-else>{{ $t("solve_stats.auf_none") }}</span>
+          <span class="opacity-75"> · {{ $t("solve_stats.auf_case_n_fluent", caseAufs) }}</span>
         </p>
         <hr class="my-2 my-sm-3">
       </template>
@@ -136,11 +143,9 @@ const starClicked = () => {
             :class="bookmarkIconClass"
             @click="starClicked"/>
       </p>
-      <p v-if="recentResults.length > 0" class="card-text small my-0 my-sm-1" :title="$t('result_card.recent_results_hint')">
-        <span class="opacity-75">{{ $t("result_card.recent_results") }}</span>
-        {{ recentResults.join(", ") }}
-        <span v-if="comesUp !== null" class="opacity-75">· {{ $t("result_card.comes_up", {times: comesUp}) }}</span>
-      </p>
+      <RecentResults
+          v-if="settings.store.weakCases !== WeakCases.OFF"
+          :zbllKey="result['key']" class="card-text small my-0 my-sm-1"/>
       <ZbllNote :zbllKey="result['key']"/>
       <div class="form-check mt-1">
         <label

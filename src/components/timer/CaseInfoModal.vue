@@ -3,13 +3,13 @@ import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import {Modal} from "bootstrap";
 import {useSessionStore} from "@/stores/SessionStore";
 import {useSettingsStore} from "@/stores/SettingsStore";
-import {useCaseHistoryStore} from "@/stores/CaseHistoryStore";
 import {getZbllImg} from "@/helpers/cube_images";
 import {formatZbllKey} from "@/helpers/helpers";
-import {msToHumanReadable, resultToHumanReadable} from "@/helpers/time_formatter";
-import {formatTps, summarizeSolves} from "@/helpers/solve_stats";
+import {msToHumanReadable} from "@/helpers/time_formatter";
+import {formatTps, latestAufs, summarizeSolves} from "@/helpers/solve_stats";
 import SetupAndAlgs from "@/components/timer/SetupAndAlgs.vue";
 import SolveStatsTable from "@/components/timer/SolveStatsTable.vue";
+import RecentResults from "@/components/timer/RecentResults.vue";
 import ZbllNote from "@/components/ZbllNote.vue";
 import {useI18n} from "vue-i18n";
 
@@ -21,15 +21,9 @@ const {t} = useI18n()
 
 const sessionStore = useSessionStore()
 const settings = useSettingsStore()
-const caseHistory = useCaseHistoryStore()
 
 // the view of the pictures everywhere else first
 const pictureViews = computed(() => settings.store.pictureView === "top" ? ["top", "3D"] : ["3D", "top"])
-
-// What makes the case come up more or less often than the others, see case_weights.js
-const recentResults = computed(() => caseHistory.resultsOf(props.zbllKey)
-    .map(recent => resultToHumanReadable(recent, settings.store.timerPrecision)))
-const comesUp = computed(() => sessionStore.comesUp?.get(props.zbllKey)?.toFixed(1) ?? null)
 
 // the results of the case in the session
 const results = computed(() => sessionStore.stats().filter(result => result.key === props.zbllKey))
@@ -52,8 +46,11 @@ const sessionRows = computed(() => {
     ...(smartCube.execution === null ? [] : [row("execution", time, smartCube.execution)]),
     ...(smartCube.moves === null ? [] : [row("moves", moves, smartCube.moves, t("solve_stats.moves_hint"))]),
     ...(smartCube.tps === null ? [] : [row("tps", formatTps, smartCube.tps)]),
+    ...(smartCube.auf === null ? [] : [row("auf", time, smartCube.auf, t("solve_stats.auf_hint"))]),
   ]
 })
+// how fluent its latest AUFs were, which tells whether the AUF of its alg is known, see solve_stats.js
+const aufs = computed(() => latestAufs(results.value))
 
 const modalElement = ref(null)
 let modal = null
@@ -93,11 +90,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <hr class="mt-0">
-            <p v-if="recentResults.length > 0" class="mb-2" :title="t('result_card.recent_results_hint')">
-              <span class="opacity-75">{{ t("result_card.recent_results") }}</span>
-              {{ recentResults.join(", ") }}
-              <span v-if="comesUp !== null" class="opacity-75">· {{ t("result_card.comes_up", {times: comesUp}) }}</span>
-            </p>
+            <RecentResults :zbllKey="zbllKey" class="mb-2"/>
             <div class="mb-1">
               {{ t("case_info.session_solves", times.length) }}
               <span v-if="dnfCount > 0">· {{ t("case_info.n_dnf", {count: dnfCount}) }}</span>
@@ -105,6 +98,10 @@ onBeforeUnmount(() => {
             <SolveStatsTable
                 v-if="sessionRows.length > 0"
                 :columns="[t('solve_stats.mean'), t('solve_stats.best')]" :rows="sessionRows"/>
+            <p v-if="aufs.count > 0" class="mt-2 mb-0" :title="t('solve_stats.auf_hint')">
+              <span class="opacity-75">{{ t("solve_stats.auf_label") }}</span>
+              {{ t("solve_stats.auf_n_fluent", aufs) }}
+            </p>
           </div>
         </div>
       </div>

@@ -10,14 +10,18 @@ how much: more often (the default), much more often, or like the others.
   is forgotten.
 - A result is compared to your typical time: the median, over the cases you selected, of their mean time. A DNF
   counts as twice the typical time, and so does a solve that took even longer.
+- A smart cube solve that ended with an AUF you did not know (see *AUF* below) counts as a slower one, because
+  its time shows little of that: by a quarter of the typical time if you paused before the AUF, by half of it if
+  you corrected the AUF, and never as more than a DNF. A case of typical time whose AUF you always correct comes
+  up about twice as often as one whose AUF you know, or almost four times as often with "much more often".
 - The score of a case is the mean of its results, in typical times, together with one made-up result of 1.5: a
   case you have not had yet is taken for a rather weak one, and one lucky solve does not make a case a strong one.
 - A case comes up in proportion to its score squared ("more often") or to the power of four ("much more often"),
   but never twice in a row. A case that takes half as long again as the typical one comes up about twice as often
   as it, or four times as often with "much more often"; one you always DNF three times as often, or ten times.
 - The result card shows the latest results of its case and how often it comes up compared to the average of the
-  selected cases (×2 is twice as often). The stats card lists the weakest cases; a click on one shows its
-  pictures, algs, note and results.
+  selected cases (×2 is twice as often). A time in yellow had a paused AUF, one in red a corrected one. The stats
+  card lists the weakest cases; a click on one shows its pictures, algs, note and results.
 - With "like the others" every case has the same chance, except that one pick in five goes to the cases that
   came up least. Going through each case once ("recap") does not use the weights.
 
@@ -61,10 +65,20 @@ The cube tells more about a solve than its time:
   straight into the alg does. With the timer set to start at the first turn, it starts over when the execution does.
 - *Moves* counts the turns of the execution in the half turn metric: a double turn is one move, also when the cube
   reports it as two quarter turns, and a slice move is two. *TPS* is moves per second of execution.
-- The line under the timer has these for the last solve while you are on the next case. The result card has them
-  next to your mean for the same case in the session, with the turns you made, the ones before the execution in
-  brackets. The cube only knows face turns: a wide move or a rotation shows up as the faces that turned, and
-  renames the faces that follow. The stats card has the mean and the best of the session.
+- The *AUF* that ends a solve tells whether you know the AUF of the alg, which neither recognition nor execution
+  time shows. It is the turns of the top face after the last turn of another face, timed from that turn. If you
+  know which AUF is coming you make it as one more move of the alg: a *fluent* AUF. If you do not, you have to look
+  first: the AUF is *paused*, one move after a pause (0.25 seconds or more, and at least twice your usual time from
+  one move of the alg to the next, so that slow turning is not a pause; a double turn with such a pause in the
+  middle counts too), or *corrected*, more than one move, like U' U2, or U U' on a cube that was solved already.
+  A solve that ends without an AUF tells nothing. A case is judged by its last 5 solves of the session that ended
+  with an AUF. A case whose AUF you do not know also comes up more often, see *Weak cases*.
+- The line under the timer has these for the last solve while you are on the next case, the AUF in green, yellow or
+  red. The result card has them next to your mean for the same case in the session, with the turns you made, the
+  ones before the execution in brackets, and with how many of the latest AUFs of the case were fluent. The cube
+  only knows face turns: a wide move or a rotation shows up as the faces that turned, and renames the faces that
+  follow. The stats card has the mean and the best of the session, how many of its AUFs were fluent, and the cases
+  whose AUFs were not: a click on one shows the case.
 
 ## Sync to Google Drive
 

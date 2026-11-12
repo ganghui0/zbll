@@ -2,7 +2,7 @@
 import {TimerState, useSessionStore} from "@/stores/SessionStore";
 import {computed, onMounted, ref, watch} from "vue";
 import {msToHumanReadable, resultToHumanReadable} from "@/helpers/time_formatter";
-import {formatTps, summarizeSolves} from "@/helpers/solve_stats";
+import {formatTps, leastFluentAufs, summarizeAufs, summarizeSolves} from "@/helpers/solve_stats";
 import SolveStatsTable from "@/components/timer/SolveStatsTable.vue";
 import {useSettingsStore} from "@/stores/SettingsStore";
 import {useSelectedStore} from "@/stores/SelectedStore";
@@ -52,9 +52,9 @@ watch(() => smartCube.training, training => training && (shownCase.value = null)
 const smartCubeSolves = computed(() => summarizeSolves(sessionStore.stats()))
 const smartCubeRows = computed(() => {
   const time = ms => msToHumanReadable(ms, settings.store.timerPrecision)
-  const row = (name, format) => {
+  const row = (name, format, hint) => {
     const {mean, best} = smartCubeSolves.value[name]
-    return {label: t("solve_stats." + name), cells: [format(mean), format(best)]}
+    return {label: t("solve_stats." + name), hint, cells: [format(mean), format(best)]}
   }
   // without a recognition time the time of a solve is that of its execution
   const split = smartCubeSolves.value.recognition !== null
@@ -62,8 +62,17 @@ const smartCubeRows = computed(() => {
     ...(split ? [row("time", time), row("recognition", time)] : []),
     row("execution", time),
     ...(smartCubeSolves.value.tps === null ? [] : [row("tps", formatTps)]),
+    ...(smartCubeSolves.value.auf === null ? [] : [row("auf", time, t("solve_stats.auf_hint"))]),
   ]
 })
+
+// Whether the AUF of an alg is known shows in how a solve ends, see solve_stats.js: how many AUFs of the
+// session were fluent, and the cases whose latest ones were not.
+const LEAST_FLUENT_SHOWN = 5
+const aufs = computed(() => summarizeAufs(sessionStore.stats()))
+const leastFluentAufCases = computed(() => leastFluentAufs(sessionStore.stats())
+    .slice(0, LEAST_FLUENT_SHOWN)
+    .map(({key, count, fluent}) => ({key, name: formatZbllKey(key), count, fluent})))
 
 </script>
 
@@ -110,13 +119,25 @@ const smartCubeRows = computed(() => {
             </span>{{ index < weakestCases.length - 1 ? ", " : "" }}
           </span>
         </div>
-        <CaseInfoModal v-if="shownCase" :key="shownCase" :zbllKey="shownCase" @closed="shownCase = null"/>
       </template>
       <template v-if="smartCubeSolves.count > 0">
         <hr>
         <div class="mb-1">{{ t("solve_stats.smart_cube_solves", smartCubeSolves.count) }}</div>
         <SolveStatsTable :columns="[t('solve_stats.mean'), t('solve_stats.best')]" :rows="smartCubeRows"/>
+        <div v-if="aufs.count > 0" class="small mt-2" :title="t('solve_stats.auf_session_hint')">
+          <span class="opacity-75 me-1">{{ t("solve_stats.auf_label") }}</span>
+          <span class="me-1">{{ t("solve_stats.auf_n_fluent", aufs) }}</span>
+          <template v-if="leastFluentAufCases.length > 0">
+            <span class="opacity-75 me-1">· {{ t("solve_stats.auf_least_fluent") }}</span>
+            <span v-for="(unsure, index) in leastFluentAufCases" :key="unsure.key">
+              <span class="clickable stat" @click="shownCase = unsure.key">
+                <span class="case_name">{{ unsure.name }}</span> <span class="opacity-75">{{ unsure.fluent }}/{{ unsure.count }}</span>
+              </span>{{ index < leastFluentAufCases.length - 1 ? ", " : "" }}
+            </span>
+          </template>
+        </div>
       </template>
+      <CaseInfoModal v-if="shownCase" :key="shownCase" :zbllKey="shownCase" @closed="shownCase = null"/>
     </div>
   </div>
 </template>
