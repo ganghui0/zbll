@@ -16,7 +16,8 @@ how much: more often (the default), much more often, or like the others.
   but never twice in a row. A case that takes half as long again as the typical one comes up about twice as often
   as it, or four times as often with "much more often"; one you always DNF three times as often, or ten times.
 - The result card shows the latest results of its case and how often it comes up compared to the average of the
-  selected cases (×2 is twice as often). The stats card lists the weakest cases.
+  selected cases (×2 is twice as often). The stats card lists the weakest cases; a click on one shows its
+  pictures, algs, note and results.
 - With "like the others" every case has the same chance, except that one pick in five goes to the cases that
   came up least. Going through each case once ("recap") does not use the weights.
 

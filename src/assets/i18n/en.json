@@ -144,7 +144,11 @@
       "hold_spacebar_hint": "Hold spacebar to start the timer",
       "are_you_sure_to_clean": "Clear session?",
       "weakest_cases": "Weakest cases:",
-      "weakest_cases_hint": "The cases you train that come up most often, and how often compared to the average one. See the settings."
+      "weakest_cases_hint": "The cases you train that come up most often, and how often compared to the average one. See the settings. Click a case to see its pictures, algs and results."
+    },
+    "case_info": {
+      "session_solves": "This session: no solves | This session: one solve | This session: {count} solves",
+      "n_dnf": "{count} DNF"
     },
     "result_card": {
       "result_no": "Result #{count}",

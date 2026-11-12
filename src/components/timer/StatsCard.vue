@@ -8,6 +8,8 @@ import {useSettingsStore} from "@/stores/SettingsStore";
 import {useSelectedStore} from "@/stores/SelectedStore";
 import {useCaseHistoryStore} from "@/stores/CaseHistoryStore";
 import {formatZbllKey} from "@/helpers/helpers";
+import {useSmartCubeStore} from "@/stores/SmartCubeStore";
+import CaseInfoModal from "@/components/timer/CaseInfoModal.vue";
 import {useI18n} from 'vue-i18n'
 const {t} = useI18n()
 
@@ -38,7 +40,13 @@ const weakestCases = computed(() => [...(sessionStore.comesUp ?? [])]
     .filter(([key, times]) => times > 1 && caseHistory.resultsOf(key).length > 0)
     .sort(([, times], [, otherTimes]) => otherTimes - times)
     .slice(0, WEAKEST_SHOWN)
-    .map(([key, times]) => ({name: formatZbllKey(key), times: times.toFixed(1)})))
+    .map(([key, times]) => ({key, name: formatZbllKey(key), times: times.toFixed(1)})))
+
+// The name of a case does not tell what it looks like: a click on it shows the case.
+const shownCase = ref(null)
+// a smart cube starts the training by itself: the case does not stay over the timer
+const smartCube = useSmartCubeStore()
+watch(() => smartCube.training, training => training && (shownCase.value = null))
 
 // of the solves that a smart cube told more about than their time
 const smartCubeSolves = computed(() => summarizeSolves(sessionStore.stats()))
@@ -95,11 +103,14 @@ const smartCubeRows = computed(() => {
       <template v-if="weakestCases.length > 0">
         <hr>
         <div class="small" :title="t('stats_card.weakest_cases_hint')">
-          <span class="opacity-75">{{ t("stats_card.weakest_cases") }}</span>
-          <span v-for="(weak, index) in weakestCases" :key="weak.name">
-            {{ weak.name }} <span class="opacity-75">×{{ weak.times }}</span>{{ index < weakestCases.length - 1 ? "," : "" }}
+          <span class="opacity-75 me-1">{{ t("stats_card.weakest_cases") }}</span>
+          <span v-for="(weak, index) in weakestCases" :key="weak.key">
+            <span class="clickable stat" @click="shownCase = weak.key">
+              <span class="case_name">{{ weak.name }}</span> <span class="opacity-75">×{{ weak.times }}</span>
+            </span>{{ index < weakestCases.length - 1 ? ", " : "" }}
           </span>
         </div>
+        <CaseInfoModal v-if="shownCase" :key="shownCase" :zbllKey="shownCase" @closed="shownCase = null"/>
       </template>
       <template v-if="smartCubeSolves.count > 0">
         <hr>
@@ -117,6 +128,11 @@ const smartCubeRows = computed(() => {
 
 .stat:hover {
   color: var(--bs-info)
+}
+/* tells that there is more behind the name, also where nothing hovers */
+.case_name {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
 }
 .stats-container {
   max-height: 200px;
