@@ -44,6 +44,9 @@ the settings) and stops when the case is solved, then the next case comes up.
     of solving the cube back for a time that means nothing. It also works right after a solve, until the next case
     appears: that solve becomes a DNF.
   - D' four times (the bottom face, the other way) stops like Esc. A case you had just solved still counts.
+- The screen stays on while you turn the cube: no screen saver in the middle of the training because nobody
+  touched the keyboard. Five minutes after the last turn, or when the cube is disconnected, the computer is free
+  to dim the screen and to sleep again. The open page alone keeps nothing awake.
 - Drag the virtual cube with the mouse to look at it from another side. Double click to undo that, and to tell the
   trainer that you hold the cube upright right now.
 

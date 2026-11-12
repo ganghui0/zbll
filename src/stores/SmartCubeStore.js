@@ -9,6 +9,7 @@ import {applyAlg, applyMove, isSolved, mapAlg, parseMove, solvedState} from "@/h
 import {
     createGyroView, GyroMode, gyroQuaternion, homeOrientations, nearestOrientation, qConj, qMul,
 } from "@/helpers/cube_orientation";
+import {createScreenKeeper} from "@/helpers/screen_awake";
 
 // The next case is shown once the cube has been left alone for this long, so that a turn right after a
 // solve (a mispredicted AUF, say) does not land on the new case.
@@ -23,6 +24,9 @@ const GESTURE_QUARTER_TURNS = 4
 // The cube's clock is fitted to ours to time a solve. A fit that disagrees with the cube's clock by more
 // than this is a bad fit (too few turns), not a clock that is this far off.
 const MAX_CLOCK_SKEW = 0.05
+// The screen stays on for this long after the latest turn of the cube: nobody touches the keyboard while
+// training, and the screen saver would come up. A cube that is left alone does not keep the computer awake.
+const SCREEN_ON_MS = 5 * 60 * 1000
 
 export const ConnectionStatus = Object.freeze({
     DISCONNECTED: "disconnected",
@@ -98,6 +102,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
 
     let connection = null
     let subscription = null
+    const screen = createScreenKeeper(SCREEN_ON_MS)
     // The case for each way the cube can be held. The turns go to all of them, and the case is solved
     // when one of them is: the one of the side that really was in front.
     let candidates = []
@@ -270,6 +275,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
     }
 
     const onTurn = event => {
+        screen.used()
         const move = `${event.move}`.trim()
         let turned
         try {
@@ -421,6 +427,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         connection = null
         status.value = ConnectionStatus.DISCONNECTED
         statusMessage.value = ""
+        screen.release()
         endAttempt(false)
         pause()
     }
@@ -444,6 +451,7 @@ export const useSmartCubeStore = defineStore('smartCube', () => {
         battery.value = null
         status.value = ConnectionStatus.CONNECTED
         statusMessage.value = ""
+        screen.used()
         pause()
         // we do not know the state of the real cube, and do not need to
         setCubeState(solvedState())
